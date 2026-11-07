@@ -31,15 +31,20 @@ class AppUser {
     return parts.take(2).map((p) => p[0].toUpperCase()).join();
   }
 
-  factory AppUser.fromMap(String uid, Map<String, dynamic> map) => AppUser(
-    uid: uid,
-    name: map['name'] as String? ?? '',
-    email: map['email'] as String? ?? '',
-    role: UserRole.fromName(map['role'] as String?),
-    department: map['department'] as String? ?? '',
-    campus: map['campus'] as String? ?? '',
-    createdAt: (map['createdAt'] as Timestamp?)?.toDate(),
-  );
+  factory AppUser.fromMap(String uid, Map<String, dynamic> map) {
+    String text(String key) => map[key] is String ? map[key] as String : '';
+    return AppUser(
+      uid: uid,
+      name: text('name'),
+      email: text('email'),
+      role: UserRole.fromName(text('role')),
+      department: text('department'),
+      campus: text('campus'),
+      createdAt: map['createdAt'] is Timestamp
+          ? (map['createdAt'] as Timestamp).toDate()
+          : null,
+    );
+  }
 
   /// Fields written when the profile is first created. The role is always
   /// `student`; the security rules reject anything else.

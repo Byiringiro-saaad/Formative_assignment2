@@ -65,28 +65,36 @@ class Incident {
   factory Incident.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) =>
       Incident.fromMap(doc.id, doc.data() ?? const {});
 
+  /// Tolerates missing or wrongly typed fields, so one malformed document
+  /// can never break a whole list of reports.
   factory Incident.fromMap(String id, Map<String, dynamic> map) {
-    final created =
-        (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+    final created = _date(map['createdAt']) ?? DateTime.now();
     return Incident(
       id: id,
-      title: map['title'] as String? ?? '',
-      description: map['description'] as String? ?? '',
-      category: IncidentCategory.fromName(map['category'] as String?),
-      location: map['location'] as String? ?? '',
-      status: IncidentStatus.fromName(map['status'] as String?),
-      reporterId: map['reporterId'] as String? ?? '',
-      reporterName: map['reporterName'] as String? ?? '',
+      title: _string(map['title']) ?? '',
+      description: _string(map['description']) ?? '',
+      category: IncidentCategory.fromName(_string(map['category'])),
+      location: _string(map['location']) ?? '',
+      status: IncidentStatus.fromName(_string(map['status'])),
+      reporterId: _string(map['reporterId']) ?? '',
+      reporterName: _string(map['reporterName']) ?? '',
       createdAt: created,
-      updatedAt: (map['updatedAt'] as Timestamp?)?.toDate() ?? created,
-      photoUrl: map['photoUrl'] as String?,
-      photoPath: map['photoPath'] as String?,
-      history: ((map['history'] as List<dynamic>?) ?? const [])
-          .whereType<Map<String, dynamic>>()
-          .map(StatusChange.fromMap)
-          .toList(),
+      updatedAt: _date(map['updatedAt']) ?? created,
+      photoUrl: _string(map['photoUrl']),
+      photoPath: _string(map['photoPath']),
+      history: [
+        if (map['history'] case final List<dynamic> entries)
+          for (final entry in entries)
+            if (entry is Map)
+              StatusChange.fromMap(Map<String, dynamic>.from(entry)),
+      ],
     );
   }
+
+  static String? _string(Object? value) => value is String ? value : null;
+
+  static DateTime? _date(Object? value) =>
+      value is Timestamp ? value.toDate() : null;
 
   Map<String, dynamic> toMap() => {
     'title': title,

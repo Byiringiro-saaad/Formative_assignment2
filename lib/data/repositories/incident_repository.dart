@@ -72,7 +72,13 @@ class IncidentRepository {
         ),
       ],
     );
-    await _incidents.doc(id).set(incident.toMap());
+    // createdAt/updatedAt use server time: the security rules require it,
+    // so nobody can backdate a report.
+    await _incidents.doc(id).set({
+      ...incident.toMap(),
+      'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
     return incident;
   }
 
@@ -95,7 +101,7 @@ class IncidentRepository {
     );
     return _incidents.doc(incident.id).update({
       'status': status.name,
-      'updatedAt': Timestamp.fromDate(at),
+      'updatedAt': FieldValue.serverTimestamp(),
       'history': FieldValue.arrayUnion([change.toMap()]),
     });
   }

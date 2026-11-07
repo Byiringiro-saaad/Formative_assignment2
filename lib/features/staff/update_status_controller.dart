@@ -36,7 +36,7 @@ class UpdateStatusController extends AsyncNotifier<void> {
     }
 
     state = const AsyncLoading();
-    state = await AsyncValue.guard(
+    final result = await AsyncValue.guard(
       () => ref
           .read(incidentRepositoryProvider)
           .updateStatus(
@@ -46,7 +46,8 @@ class UpdateStatusController extends AsyncNotifier<void> {
             note: note,
           ),
     );
-    return !state.hasError;
+    if (ref.mounted) state = result;
+    return !result.hasError;
   }
 }
 

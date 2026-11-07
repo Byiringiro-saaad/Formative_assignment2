@@ -18,12 +18,16 @@ class StatusChange {
   final String changedByName;
   final String note;
 
+  /// Tolerates missing or wrongly typed fields.
   factory StatusChange.fromMap(Map<String, dynamic> map) => StatusChange(
-    status: IncidentStatus.fromName(map['status'] as String?),
-    changedAt: (map['changedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-    changedBy: map['changedBy'] as String? ?? '',
-    changedByName: map['changedByName'] as String? ?? '',
-    note: map['note'] as String? ?? '',
+    status: IncidentStatus.fromName(_string(map['status'])),
+    changedAt: switch (map['changedAt']) {
+      final Timestamp t => t.toDate(),
+      _ => DateTime.now(),
+    },
+    changedBy: _string(map['changedBy']) ?? '',
+    changedByName: _string(map['changedByName']) ?? '',
+    note: _string(map['note']) ?? '',
   );
 
   Map<String, dynamic> toMap() => {
@@ -33,4 +37,6 @@ class StatusChange {
     'changedByName': changedByName,
     'note': note,
   };
+
+  static String? _string(Object? value) => value is String ? value : null;
 }

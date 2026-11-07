@@ -121,9 +121,41 @@ void main() {
       expect(await repo.watchUser('amina').first, isNull);
 
       await repo.createProfile(amina);
-      final user = await repo.watchUser('amina').first;
+      final user = await repo
+          .watchUser('amina')
+          .firstWhere((u) => u != null)
+          .timeout(const Duration(seconds: 2));
       expect(user!.name, 'Amina Hassan');
       expect(user.role, UserRole.student);
+    });
+
+    test('sign-up and profile repair can race without losing data', () async {
+      final repo = UserRepository(FakeFirebaseFirestore());
+      // The repair lands first with a fallback name ...
+      await repo.ensureProfile(uid: 'amina', email: 'amina@alu.edu');
+      // ... then sign-up saves the real details over it.
+      await repo.createProfile(
+        amina.copyForTest(department: 'Computer Science'),
+      );
+      // A late repair never overwrites them.
+      await repo.ensureProfile(uid: 'amina', email: 'amina@alu.edu');
+
+      final user = await repo.watchUser('amina').first;
+      expect(user!.name, 'Amina Hassan');
+      expect(user.department, 'Computer Science');
+      expect(user.role, UserRole.student);
+    });
+
+    test('fallback names always fit the 2-60 character rule', () {
+      expect(UserRepository.fallbackName(email: 'a@uni.edu'), 'Student a');
+      expect(
+        UserRepository.fallbackName(email: '${'x' * 80}@uni.edu').length,
+        60,
+      );
+      expect(
+        UserRepository.fallbackName(displayName: ' Amina ', email: 'a@b.c'),
+        'Amina',
+      );
     });
 
     test('updateProfile trims the editable fields', () async {
@@ -189,4 +221,14 @@ void main() {
       );
     });
   });
+}
+
+extension on AppUser {
+  AppUser copyForTest({required String department}) => AppUser(
+    uid: uid,
+    name: name,
+    email: email,
+    role: role,
+    department: department,
+  );
 }

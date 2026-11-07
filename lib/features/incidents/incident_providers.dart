@@ -7,9 +7,14 @@ import '../../data/models/incident_status.dart';
 import '../auth/auth_providers.dart';
 
 /// Every incident on campus, newest first, kept live from Firestore.
-final allIncidentsProvider = StreamProvider<List<Incident>>(
-  (ref) => ref.watch(incidentRepositoryProvider).watchAll(),
-);
+///
+/// Rebuilt when the signed-in user changes, so a listener that failed with
+/// "permission denied" after sign-out is replaced on the next sign-in.
+final allIncidentsProvider = StreamProvider<List<Incident>>((ref) {
+  final uid = ref.watch(authStateProvider.select((a) => a.value?.uid));
+  if (uid == null) return Stream.value(const []);
+  return ref.watch(incidentRepositoryProvider).watchAll();
+});
 
 /// Incidents reported by the signed-in user.
 final myIncidentsProvider = StreamProvider<List<Incident>>((ref) {
@@ -19,9 +24,14 @@ final myIncidentsProvider = StreamProvider<List<Incident>>((ref) {
 });
 
 /// One incident by id, live.
-final incidentProvider = StreamProvider.family<Incident?, String>(
-  (ref, id) => ref.watch(incidentRepositoryProvider).watchById(id),
-);
+final incidentProvider = StreamProvider.autoDispose.family<Incident?, String>((
+  ref,
+  id,
+) {
+  final uid = ref.watch(authStateProvider.select((a) => a.value?.uid));
+  if (uid == null) return Stream.value(null);
+  return ref.watch(incidentRepositoryProvider).watchById(id);
+});
 
 /// Counts shown on the summary tiles.
 class IncidentSummary {

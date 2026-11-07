@@ -25,12 +25,15 @@ final currentUserProvider = StreamProvider<AppUser?>((ref) {
   return users.watchUser(user.uid).map((profile) {
     if (profile == null && !repaired) {
       repaired = true;
+      // A transaction, so it can't clash with sign-up writing the profile.
       unawaited(
-        users.ensureProfile(
-          uid: user.uid,
-          email: user.email ?? '',
-          displayName: user.displayName,
-        ),
+        users
+            .ensureProfile(
+              uid: user.uid,
+              email: user.email ?? '',
+              displayName: user.displayName,
+            )
+            .catchError((Object _) => repaired = false),
       );
     }
     return profile;

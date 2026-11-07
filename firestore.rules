@@ -61,37 +61,69 @@ service cloud.firestore {
     }
 
     // ---------- incidents ----------
+    function photoBase() {
+      return 'https://wkjdfzafkuwigelkxiir.supabase.co/storage/v1/object/public/incident-photos/';
+    }
+
+    // A history entry written by the current user, dated around now. Array
+    // entries can't use server timestamps, so allow some clock drift.
+    function validChange(entry, status) {
+      return entry is map
+        && entry.keys().hasOnly(['status', 'changedAt', 'changedBy', 'changedByName', 'note'])
+        && entry.status == status
+        && entry.changedBy == request.auth.uid
+        && entry.changedByName == profile().name
+        && entry.changedAt is timestamp
+        && entry.changedAt > request.time - duration.value(1, 'h')
+        && entry.changedAt < request.time + duration.value(1, 'h')
+        && entry.note is string
+        && entry.note.size() <= 300;
+    }
+
+    // No photo, or one in the reporter's own folder for this incident.
+    function validPhoto(data, incidentId) {
+      return (data.photoPath == null && data.photoUrl == null)
+        || (data.photoPath is string
+            && data.photoPath.matches(request.auth.uid + '/' + incidentId + '/[A-Za-z0-9-]+[.][a-z]+')
+            && data.photoUrl == photoBase() + data.photoPath);
+    }
+
     match /incidents/{incidentId} {
       // Any signed-in user can browse reports.
       allow read: if signedIn();
 
-      // A new report must belong to its author and start as "submitted".
+      // A new report must belong to its author, carry the author's real
+      // name, start as "submitted" and use server time.
       allow create: if signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
         && request.resource.data.keys().hasOnly([
              'title', 'description', 'category', 'location', 'status',
              'reporterId', 'reporterName', 'createdAt', 'updatedAt',
              'photoUrl', 'photoPath', 'history'])
         && request.resource.data.reporterId == request.auth.uid
+        && request.resource.data.reporterName == profile().name
         && request.resource.data.status == 'submitted'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time
         && validText(request.resource.data.title, 3, 80)
         && validText(request.resource.data.description, 10, 1000)
         && validText(request.resource.data.location, 2, 80)
         && validCategory(request.resource.data.category)
         && request.resource.data.history is list
         && request.resource.data.history.size() == 1
-        && request.resource.data.history[0].status == 'submitted'
-        && request.resource.data.history[0].changedBy == request.auth.uid
-        && (request.resource.data.photoUrl == null
-            || request.resource.data.photoUrl.matches('https://wkjdfzafkuwigelkxiir[.]supabase[.]co/storage/v1/object/public/incident-photos/.*'));
+        && validChange(request.resource.data.history[0], 'submitted')
+        && validPhoto(request.resource.data, incidentId);
 
-      // Only staff change status: forward only, one history entry per change.
+      // Only staff change status: forward only, earlier history untouched,
+      // exactly one new entry describing this change.
       allow update: if isStaff()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt', 'history'])
         && validStatus(request.resource.data.status)
         && statusRank(request.resource.data.status) > statusRank(resource.data.status)
+        && request.resource.data.updatedAt == request.time
         && request.resource.data.history.size() == resource.data.history.size() + 1
-        && request.resource.data.history[resource.data.history.size()].status == request.resource.data.status
-        && request.resource.data.history[resource.data.history.size()].changedBy == request.auth.uid;
+        && request.resource.data.history[0:resource.data.history.size()] == resource.data.history
+        && validChange(request.resource.data.history[resource.data.history.size()], request.resource.data.status);
 
       // Reporters can withdraw their own report until work starts.
       allow delete: if signedIn()

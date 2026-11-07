@@ -71,6 +71,29 @@ void main() {
       expect(i.matches('projector'), isFalse);
     });
 
+    test('a malformed document never throws', () {
+      final i = Incident.fromMap('bad', {
+        'title': 42,
+        'createdAt': 'yesterday',
+        'updatedAt': true,
+        'history': [
+          'junk',
+          {'status': 'resolved', 'changedAt': 'x', 'note': 7},
+          <Object?, Object?>{'status': 'inProgress', 'changedBy': 'staff1'},
+        ],
+      });
+      expect(i.title, '');
+      expect(i.history.map((h) => h.status), [
+        IncidentStatus.resolved,
+        IncidentStatus.inProgress,
+      ]);
+      expect(i.history.first.note, '');
+      expect(
+        AppUser.fromMap('u', {'name': 3, 'role': 99}).role,
+        UserRole.student,
+      );
+    });
+
     test('tolerates missing and unknown fields', () {
       final i = Incident.fromMap('x', {
         'category': 'parking',

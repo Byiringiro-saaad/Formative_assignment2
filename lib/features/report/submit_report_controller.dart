@@ -53,7 +53,7 @@ class SubmitReportController extends AsyncNotifier<Incident?> {
     }
 
     state = const AsyncLoading();
-    state = await AsyncValue.guard(() async {
+    final result = await AsyncValue.guard(() async {
       final incidents = ref.read(incidentRepositoryProvider);
       final photos = ref.read(photoRepositoryProvider);
       final id = incidents.newId();
@@ -86,7 +86,11 @@ class SubmitReportController extends AsyncNotifier<Incident?> {
         rethrow;
       }
     });
-    return state.value;
+    // The form may have been closed while uploading; the report is saved
+    // either way, there is just no screen left to update.
+    if (!ref.mounted) return result.value;
+    state = result;
+    return result.value;
   }
 
   void reset() => state = const AsyncData(null);

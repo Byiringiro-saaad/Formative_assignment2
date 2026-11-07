@@ -7,12 +7,14 @@ import {
   initializeTestEnvironment,
 } from '@firebase/rules-unit-testing';
 import {
-  Timestamp, arrayUnion, deleteDoc, doc, getDoc, setDoc, updateDoc,
+  Timestamp, arrayUnion, deleteDoc, doc, getDoc, serverTimestamp, setDoc, updateDoc,
 } from 'firebase/firestore';
 
 let env;
-const now = Timestamp.fromDate(new Date('2026-11-07T10:00:00Z'));
-const PHOTO = 'https://wkjdfzafkuwigelkxiir.supabase.co/storage/v1/object/public/incident-photos/amina/i1/a.jpg';
+const now = Timestamp.now();
+const longAgo = Timestamp.fromDate(new Date('2020-01-01T00:00:00Z'));
+const BASE = 'https://wkjdfzafkuwigelkxiir.supabase.co/storage/v1/object/public/incident-photos/';
+const photo = (path) => ({ photoPath: path, photoUrl: BASE + path });
 
 const student = () => env.authenticatedContext('amina', { email: 'amina@alu.edu' }).firestore();
 const other = () => env.authenticatedContext('brian', { email: 'brian@alu.edu' }).firestore();
@@ -27,15 +29,15 @@ const newIncident = (overrides = {}) => ({
   status: 'submitted',
   reporterId: 'amina',
   reporterName: 'Amina Hassan',
-  createdAt: now,
-  updatedAt: now,
+  createdAt: serverTimestamp(),
+  updatedAt: serverTimestamp(),
   photoUrl: null,
   photoPath: null,
   history: [{ status: 'submitted', changedAt: now, changedBy: 'amina', changedByName: 'Amina Hassan', note: '' }],
   ...overrides,
 });
 
-const change = (status, by = 'staff1') => ({ status, changedAt: now, changedBy: by, changedByName: 'Staff', note: '' });
+const change = (status, by = 'staff1', name = 'Campus Staff') => ({ status, changedAt: now, changedBy: by, changedByName: name, note: '' });
 
 before(async () => {
   env = await initializeTestEnvironment({
@@ -52,7 +54,8 @@ beforeEach(async () => {
     const db = ctx.firestore();
     await setDoc(doc(db, 'users/staff1'), { name: 'Campus Staff', email: 'staff@alu.edu', role: 'staff', department: 'Facilities', campus: 'Kigali', createdAt: now });
     await setDoc(doc(db, 'users/amina'), { name: 'Amina Hassan', email: 'amina@alu.edu', role: 'student', department: 'CS', campus: 'Kigali', createdAt: now });
-    await setDoc(doc(db, 'incidents/existing'), newIncident());
+    await setDoc(doc(db, 'users/brian'), { name: 'Brian Kamau', email: 'brian@alu.edu', role: 'student', department: '', campus: '', createdAt: now });
+    await setDoc(doc(db, 'incidents/existing'), { ...newIncident(), createdAt: now, updatedAt: now });
   });
 });
 
@@ -60,10 +63,12 @@ describe('users', () => {
   const profile = (role = 'student') => ({ name: 'Brian K', email: 'brian@alu.edu', role, department: '', campus: '', createdAt: now });
 
   test('a user can create their own student profile', async () => {
-    await assertSucceeds(setDoc(doc(other(), 'users/brian'), profile()));
+    const fresh = env.authenticatedContext('carol', { email: 'brian@alu.edu' }).firestore();
+    await assertSucceeds(setDoc(doc(fresh, 'users/carol'), profile()));
   });
   test('a user cannot sign themselves up as staff', async () => {
-    await assertFails(setDoc(doc(other(), 'users/brian'), profile('staff')));
+    const fresh = env.authenticatedContext('carol', { email: 'brian@alu.edu' }).firestore();
+    await assertFails(setDoc(doc(fresh, 'users/carol'), profile('staff')));
   });
   test('a user cannot create a profile for someone else', async () => {
     await assertFails(setDoc(doc(other(), 'users/amina2'), profile()));
@@ -88,7 +93,7 @@ describe('incidents: create and read', () => {
   });
   test('a student can submit a valid report, with or without a photo', async () => {
     await assertSucceeds(setDoc(doc(student(), 'incidents/a'), newIncident()));
-    await assertSucceeds(setDoc(doc(student(), 'incidents/b'), newIncident({ photoUrl: PHOTO, photoPath: 'amina/i1/a.jpg' })));
+    await assertSucceeds(setDoc(doc(student(), 'incidents/b'), newIncident(photo('amina/b/3f2a-9c.jpg'))));
   });
   test('a report cannot be filed in someone else\'s name', async () => {
     await assertFails(setDoc(doc(other(), 'incidents/c'), newIncident()));
@@ -102,7 +107,26 @@ describe('incidents: create and read', () => {
     await assertFails(setDoc(doc(student(), 'incidents/g'), newIncident({ category: 'parking' })));
   });
   test('photos must come from the app\'s storage bucket', async () => {
-    await assertFails(setDoc(doc(student(), 'incidents/h'), newIncident({ photoUrl: 'https://evil.example/x.jpg' })));
+    await assertFails(setDoc(doc(student(), 'incidents/h'), newIncident({ photoUrl: 'https://evil.example/x.jpg', photoPath: 'amina/h/x.jpg' })));
+  });
+  test('a report cannot reuse another user\'s photo', async () => {
+    await assertFails(setDoc(doc(student(), 'incidents/h2'), newIncident(photo('brian/other/abc.jpg'))));
+    await assertFails(setDoc(doc(student(), 'incidents/h3'), newIncident(photo('amina/another-incident/abc.jpg'))));
+  });
+  test('timestamps must be server time, so reports cannot be backdated or malformed', async () => {
+    await assertFails(setDoc(doc(student(), 'incidents/t1'), newIncident({ createdAt: longAgo })));
+    await assertFails(setDoc(doc(student(), 'incidents/t2'), newIncident({ createdAt: 'x' })));
+    await assertFails(setDoc(doc(student(), 'incidents/t3'), newIncident({
+      history: [{ status: 'submitted', changedAt: longAgo, changedBy: 'amina', changedByName: 'Amina Hassan', note: '' }],
+    })));
+  });
+  test('the reporter name must be the reporter\'s real profile name', async () => {
+    await assertFails(setDoc(doc(student(), 'incidents/n1'), newIncident({ reporterName: 'Campus Security' })));
+  });
+  test('history entries cannot carry extra fields', async () => {
+    await assertFails(setDoc(doc(student(), 'incidents/x1'), newIncident({
+      history: [{ status: 'submitted', changedAt: now, changedBy: 'amina', changedByName: 'Amina Hassan', note: '', admin: true }],
+    })));
   });
   test('unknown fields are rejected', async () => {
     await assertFails(setDoc(doc(student(), 'incidents/i'), newIncident({ priority: 'urgent' })));
@@ -112,12 +136,31 @@ describe('incidents: create and read', () => {
 describe('incidents: status updates', () => {
   test('staff can move a report forward and add to the timeline', async () => {
     await assertSucceeds(updateDoc(doc(staff(), 'incidents/existing'), {
-      status: 'inProgress', updatedAt: now, history: arrayUnion(change('inProgress')),
+      status: 'inProgress', updatedAt: serverTimestamp(), history: arrayUnion(change('inProgress')),
+    }));
+  });
+  test('staff cannot rewrite earlier history entries', async () => {
+    let original;
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      original = (await getDoc(doc(ctx.firestore(), 'incidents/existing'))).data();
+    });
+    const forged = [{ ...original.history[0], changedByName: 'Someone else' }, change('inProgress')];
+    await assertFails(updateDoc(doc(staff(), 'incidents/existing'), {
+      status: 'inProgress', updatedAt: serverTimestamp(), history: forged,
+    }));
+  });
+  test('staff must sign the change with their own name and the current time', async () => {
+    await assertFails(updateDoc(doc(staff(), 'incidents/existing'), {
+      status: 'inProgress', updatedAt: serverTimestamp(), history: arrayUnion(change('inProgress', 'staff1', 'The Dean')),
+    }));
+    await assertFails(updateDoc(doc(staff(), 'incidents/existing'), {
+      status: 'inProgress', updatedAt: serverTimestamp(),
+      history: arrayUnion({ ...change('inProgress'), changedAt: longAgo }),
     }));
   });
   test('students cannot change status, even on their own report', async () => {
     await assertFails(updateDoc(doc(student(), 'incidents/existing'), {
-      status: 'resolved', updatedAt: now, history: arrayUnion(change('resolved', 'amina')),
+      status: 'resolved', updatedAt: serverTimestamp(), history: arrayUnion(change('resolved', 'amina', 'Amina Hassan')),
     }));
   });
   test('staff cannot move a report backwards', async () => {
@@ -125,14 +168,14 @@ describe('incidents: status updates', () => {
       status: 'resolved', history: arrayUnion(change('resolved')),
     }));
     await assertFails(updateDoc(doc(staff(), 'incidents/existing'), {
-      status: 'inProgress', updatedAt: now, history: arrayUnion(change('inProgress')),
+      status: 'inProgress', updatedAt: serverTimestamp(), history: arrayUnion(change('inProgress')),
     }));
   });
   test('staff cannot edit the report text', async () => {
     await assertFails(updateDoc(doc(staff(), 'incidents/existing'), { title: 'Edited' }));
   });
   test('a status change must be recorded in the history', async () => {
-    await assertFails(updateDoc(doc(staff(), 'incidents/existing'), { status: 'inProgress', updatedAt: now }));
+    await assertFails(updateDoc(doc(staff(), 'incidents/existing'), { status: 'inProgress', updatedAt: serverTimestamp() }));
   });
 });
 
