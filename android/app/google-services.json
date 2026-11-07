@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "96464376453",
+    "project_id": "campus-incidents-saad-b5923",
+    "storage_bucket": "campus-incidents-saad-b5923.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:96464376453:android:de947830800e16c6168fec",
+        "android_client_info": {
+          "package_name": "com.saad.campus_incidents"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDCzxKKg4I1V_EmBo1aSQzfs3BTB2Cf1qk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

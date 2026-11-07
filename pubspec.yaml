@@ -1,0 +1,50 @@
+name: campus_incidents
+description: "Campus Incident Reporting App: students report campus issues and staff track them to resolution."
+
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+  flutter_riverpod: ^3.5.0
+  go_router: ^18.1.3
+  firebase_core: ^5.1.0
+  firebase_auth: ^7.0.1
+  cloud_firestore: ^7.1.0
+  supabase_flutter: ^2.18.3
+  image_picker: ^1.2.4
+  intl: ^0.20.2
+  cached_network_image: ^4.0.3
+  uuid: ^4.6.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^6.0.0
+  fake_cloud_firestore: ^4.5.0
+  firebase_auth_mocks: ^0.16.0
+  mocktail: ^1.0.5
+  mock_exceptions: ^0.8.2
+
+flutter:
+  uses-material-design: true
+
+  fonts:
+    - family: PlusJakartaSans
+      fonts:
+        - asset: assets/fonts/PlusJakartaSans-Regular.ttf
+        - asset: assets/fonts/PlusJakartaSans-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/PlusJakartaSans-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/PlusJakartaSans-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/PlusJakartaSans-ExtraBold.ttf
+          weight: 800
