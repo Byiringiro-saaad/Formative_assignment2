@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -6,7 +6,13 @@ import '../../features/auth/auth_providers.dart';
 import '../../features/auth/forgot_password_screen.dart';
 import '../../features/auth/login_screen.dart';
 import '../../features/auth/sign_up_screen.dart';
+import '../../features/home/home_screen.dart';
+import '../../features/incidents/incident_details_screen.dart';
+import '../../features/incidents/reports_screen.dart';
+import '../../features/notifications/activity_screen.dart';
 import '../../features/profile/profile_screen.dart';
+import '../../features/report/report_form_screen.dart';
+import '../../features/shell/app_shell.dart';
 import '../../features/splash/splash_screen.dart';
 import 'routes.dart';
 
@@ -28,6 +34,8 @@ String? resolveRedirect({
 }
 
 final routerProvider = Provider<GoRouter>((ref) {
+  final rootKey = GlobalKey<NavigatorState>(debugLabel: 'root');
+
   // Re-run the redirect whenever the auth state or profile changes.
   final refresh = ValueNotifier(0);
   ref
@@ -36,6 +44,7 @@ final routerProvider = Provider<GoRouter>((ref) {
     ..onDispose(refresh.dispose);
 
   final router = GoRouter(
+    navigatorKey: rootKey,
     initialLocation: Routes.splash,
     refreshListenable: refresh,
     redirect: (context, state) {
@@ -56,7 +65,48 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: Routes.forgotPassword,
         builder: (_, _) => const ForgotPasswordScreen(),
       ),
-      GoRoute(path: Routes.profile, builder: (_, _) => const ProfileScreen()),
+      StatefulShellRoute.indexedStack(
+        builder: (_, _, shell) => AppShell(shell: shell),
+        branches: [
+          StatefulShellBranch(
+            routes: [
+              GoRoute(path: Routes.home, builder: (_, _) => const HomeScreen()),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: Routes.reports,
+                builder: (_, _) => const ReportsScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: Routes.profile,
+                builder: (_, _) => const ProfileScreen(),
+              ),
+            ],
+          ),
+        ],
+      ),
+      GoRoute(
+        path: Routes.report,
+        parentNavigatorKey: rootKey,
+        builder: (_, _) => const ReportFormScreen(),
+      ),
+      GoRoute(
+        path: Routes.activity,
+        parentNavigatorKey: rootKey,
+        builder: (_, _) => const ActivityScreen(),
+      ),
+      GoRoute(
+        path: '/incidents/:id',
+        parentNavigatorKey: rootKey,
+        builder: (_, state) =>
+            IncidentDetailsScreen(incidentId: state.pathParameters['id']!),
+      ),
     ],
   );
   ref.onDispose(router.dispose);

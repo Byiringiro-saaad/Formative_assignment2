@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../core/router/routes.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/models/app_user.dart';
+import '../../data/models/incident_status.dart';
+import '../../shared/widgets/incident_card.dart';
 import '../../shared/widgets/role_badge.dart';
+import '../../shared/widgets/summary_tile.dart';
 import '../../shared/widgets/user_avatar.dart';
 import '../auth/auth_providers.dart';
+import '../incidents/incident_providers.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -17,12 +23,83 @@ class ProfileScreen extends ConsumerWidget {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
+    final summary = ref.watch(mySummaryProvider);
+    final mine = ref.watch(myIncidentsProvider).value ?? const [];
+
+    void openMine({IncidentStatus? status}) {
+      ref.read(incidentFilterProvider.notifier)
+        ..clear()
+        ..setMineOnly(true)
+        ..setStatus(status);
+      context.go(Routes.reports);
+    }
+
     return Scaffold(
       appBar: AppBar(title: const Text('Profile')),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
           ProfileCard(user: user),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: SummaryTile(
+                  count: summary.total,
+                  label: 'Total Reports',
+                  icon: Icons.description_outlined,
+                  color: AppColors.primary,
+                  background: AppColors.primaryLight,
+                  onTap: openMine,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: SummaryTile(
+                  count: summary.inProgress,
+                  label: 'In Progress',
+                  icon: Icons.schedule_rounded,
+                  color: AppColors.tileBlueIcon,
+                  background: AppColors.tileBlue,
+                  onTap: () => openMine(status: IncidentStatus.inProgress),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: SummaryTile(
+                  count: summary.resolved,
+                  label: 'Resolved',
+                  icon: Icons.check_circle_rounded,
+                  color: AppColors.resolved,
+                  background: AppColors.resolvedBg,
+                  onTap: () => openMine(status: IncidentStatus.resolved),
+                ),
+              ),
+            ],
+          ),
+          if (mine.isNotEmpty) ...[
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'My Reports',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                ),
+                TextButton(onPressed: openMine, child: const Text('See all')),
+              ],
+            ),
+            const SizedBox(height: 8),
+            for (final incident in mine.take(3))
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: IncidentCard(
+                  incident: incident,
+                  onTap: () => context.push(Routes.incident(incident.id)),
+                ),
+              ),
+          ],
           const SizedBox(height: 20),
           Card(
             child: Column(

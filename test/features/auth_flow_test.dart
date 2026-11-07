@@ -43,7 +43,9 @@ void main() {
     await tester.enterText(find.byType(TextFormField).at(1), 'secret12');
     await tester.tap(find.text('Sign In'));
     await tester.pumpAndSettle();
+    expect(find.text('Hello, Amina 👋'), findsOneWidget);
 
+    await tester.openTab('Profile');
     expect(find.text('Amina Hassan'), findsOneWidget);
     expect(find.text('Student'), findsOneWidget);
     expect(find.text('Computer Science'), findsOneWidget);
@@ -53,6 +55,7 @@ void main() {
     final backend = TestBackend(user: amina, signedIn: true);
     await backend.addUser('amina', role: 'staff');
     await tester.pumpApp(backend);
+    await tester.openTab('Profile');
 
     expect(find.text('Staff'), findsOneWidget);
     expect(find.textContaining('update their status'), findsOneWidget);
@@ -89,14 +92,16 @@ void main() {
     expect(doc['name'], 'Brian Kamau');
     expect(doc['role'], 'student');
     expect(doc['department'], 'Engineering');
-    expect(find.text('Brian Kamau'), findsOneWidget);
+    expect(find.text('Hello, Brian 👋'), findsOneWidget);
   });
 
   testWidgets('signing out returns to the login screen', (tester) async {
     final backend = TestBackend(user: amina, signedIn: true);
     await backend.addUser('amina');
     await tester.pumpApp(backend);
+    await tester.openTab('Profile');
 
+    await tester.ensureVisible(find.text('Sign Out'));
     await tester.tap(find.text('Sign Out'));
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(TextButton, 'Sign Out'));
