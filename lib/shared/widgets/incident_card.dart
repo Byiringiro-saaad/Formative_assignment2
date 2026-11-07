@@ -31,10 +31,7 @@ class IncidentCard extends StatelessWidget {
           padding: const EdgeInsets.all(12),
           child: Row(
             children: [
-              Hero(
-                tag: 'incident-photo-${incident.id}',
-                child: IncidentThumbnail(incident: incident),
-              ),
+              IncidentThumbnail(incident: incident),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
@@ -42,7 +39,7 @@ class IncidentCard extends StatelessWidget {
                   children: [
                     Text(
                       incident.title,
-                      maxLines: 1,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontSize: 15,

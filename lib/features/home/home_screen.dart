@@ -161,7 +161,23 @@ class _Greeting extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Hello, ${user.firstName} 👋', style: text.headlineMedium),
+              Text.rich(
+                TextSpan(
+                  text: 'Hello, ${user.firstName} ',
+                  children: const [
+                    WidgetSpan(
+                      alignment: PlaceholderAlignment.middle,
+                      child: Icon(
+                        Icons.waving_hand_rounded,
+                        color: Color(0xFFF5B83D),
+                        size: 26,
+                      ),
+                    ),
+                  ],
+                ),
+                semanticsLabel: 'Hello, ${user.firstName}',
+                style: text.headlineMedium,
+              ),
               const SizedBox(height: 10),
               Text(
                 user.isStaff
@@ -181,7 +197,9 @@ class _Greeting extends ConsumerWidget {
         ),
         const SizedBox(width: 8),
         IconButton(
-          tooltip: unread > 0 ? '$unread new updates' : 'Updates',
+          tooltip: unread == 0
+              ? 'Updates'
+              : '$unread new ${unread == 1 ? 'update' : 'updates'}',
           style: IconButton.styleFrom(backgroundColor: AppColors.surface),
           onPressed: () => context.push(Routes.activity),
           icon: Badge(

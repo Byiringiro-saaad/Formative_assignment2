@@ -256,10 +256,7 @@ class _HeaderCard extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Hero(
-                  tag: 'incident-photo-${incident.id}',
-                  child: IncidentThumbnail(incident: incident, size: 76),
-                ),
+                IncidentThumbnail(incident: incident, size: 76),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(

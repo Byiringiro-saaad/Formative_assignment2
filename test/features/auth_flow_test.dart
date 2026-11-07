@@ -43,7 +43,10 @@ void main() {
     await tester.enterText(find.byType(TextFormField).at(1), 'secret12');
     await tester.tap(find.text('Sign In'));
     await tester.pumpAndSettle();
-    expect(find.text('Hello, Amina 👋'), findsOneWidget);
+    expect(
+      find.textContaining('Hello, Amina', findRichText: true),
+      findsOneWidget,
+    );
 
     await tester.openTab('Profile');
     expect(find.text('Amina Hassan'), findsOneWidget);
@@ -92,7 +95,10 @@ void main() {
     expect(doc['name'], 'Brian Kamau');
     expect(doc['role'], 'student');
     expect(doc['department'], 'Engineering');
-    expect(find.text('Hello, Brian 👋'), findsOneWidget);
+    expect(
+      find.textContaining('Hello, Brian', findRichText: true),
+      findsOneWidget,
+    );
   });
 
   testWidgets('signing out returns to the login screen', (tester) async {

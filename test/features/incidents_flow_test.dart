@@ -62,7 +62,10 @@ void main() {
     ) async {
       await tester.pumpApp(await signedInStudent());
 
-      expect(find.text('Hello, Amina 👋'), findsOneWidget);
+      expect(
+        find.textContaining('Hello, Amina', findRichText: true),
+        findsOneWidget,
+      );
       expect(find.text('Report an Issue'), findsOneWidget);
       // 3 of Amina's reports: one per status. Brian's report is not counted.
       expect(find.widgetWithText(Column, 'My Reports'), findsOneWidget);
@@ -143,6 +146,19 @@ void main() {
   });
 
   group('details', () {
+    testWidgets('opens from the Reports tab while Home shows the same report', (
+      tester,
+    ) async {
+      await tester.pumpApp(await signedInStudent());
+      await tester.openTab('Reports');
+
+      await tester.tap(find.text('Water shortage'));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('Incident Details'), findsOneWidget);
+    });
+
     testWidgets('shows the timeline, description and staff notes', (
       tester,
     ) async {
