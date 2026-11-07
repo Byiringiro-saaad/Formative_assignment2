@@ -141,8 +141,20 @@ class _ReportFormScreenState extends ConsumerState<ReportFormScreen> {
                 DropdownButtonFormField<String>(
                   initialValue: _location,
                   isExpanded: true,
-                  hint: const Text('Where is the issue?'),
+                  hint: const Text(
+                    'Where is the issue?',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w400,
+                      color: AppColors.textMuted,
+                    ),
+                  ),
                   icon: const Icon(Icons.keyboard_arrow_down_rounded),
+                  style: const TextStyle(
+                    fontFamily: 'PlusJakartaSans',
+                    fontSize: 15,
+                    color: AppColors.textPrimary,
+                  ),
                   decoration: const InputDecoration(
                     prefixIcon: Icon(
                       Icons.location_on_outlined,

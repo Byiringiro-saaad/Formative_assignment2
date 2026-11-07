@@ -267,23 +267,34 @@ class _HeroCard extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                staff ? 'New reports\nneed review' : 'See an issue\non campus?',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 22,
-                  height: 1.2,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                staff
-                    ? 'Pick up submitted reports and keep\nstudents informed.'
-                    : 'Report it and help improve\nour learning environment.',
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.92),
-                  fontSize: 14,
+              // Keep the text clear of the building illustration.
+              Padding(
+                padding: const EdgeInsets.only(right: 96),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      staff
+                          ? 'New reports\nneed review'
+                          : 'See an issue\non campus?',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        height: 1.2,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      staff
+                          ? 'Pick up submitted reports and keep students informed.'
+                          : 'Report it and help improve our learning environment.',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.92),
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 18),
