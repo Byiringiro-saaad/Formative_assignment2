@@ -14,6 +14,7 @@ import '../../shared/widgets/feedback.dart';
 import '../../shared/widgets/incident_thumbnail.dart';
 import '../../shared/widgets/status_chip.dart';
 import '../auth/auth_providers.dart';
+import '../staff/status_update_panel.dart';
 import 'incident_providers.dart';
 import 'status_timeline.dart';
 
@@ -224,8 +225,7 @@ class IncidentDetailsScreen extends ConsumerWidget {
   }
 }
 
-/// Extra actions under the report. Empty for students; staff get the
-/// status controls (added by the staff feature).
+/// Extra actions under the report: staff get the status controls.
 class IncidentActions extends StatelessWidget {
   const IncidentActions({
     super.key,
@@ -237,7 +237,9 @@ class IncidentActions extends StatelessWidget {
   final AppUser user;
 
   @override
-  Widget build(BuildContext context) => const SizedBox.shrink();
+  Widget build(BuildContext context) => user.isStaff
+      ? StatusUpdatePanel(incident: incident)
+      : const SizedBox.shrink();
 }
 
 class _HeaderCard extends StatelessWidget {

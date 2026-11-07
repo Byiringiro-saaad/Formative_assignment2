@@ -18,7 +18,14 @@ if (!email) {
 const role = flag === '--revoke' ? 'student' : 'staff';
 
 initializeApp({ credential: applicationDefault() });
-const user = await getAuth().getUserByEmail(email);
+let user;
+try {
+  user = await getAuth().getUserByEmail(email);
+} catch (e) {
+  if (e.code !== 'auth/user-not-found') throw e;
+  console.error(`No account found for ${email}. Sign up in the app first.`);
+  process.exit(1);
+}
 const ref = getFirestore().doc(`users/${user.uid}`);
 const snap = await ref.get();
 if (!snap.exists) {
