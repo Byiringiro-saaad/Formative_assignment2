@@ -1,0 +1,8 @@
+{
+  "name": "campus-incidents-admin-tools",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "firebase-admin": "^13.4.0"
+  }
+}

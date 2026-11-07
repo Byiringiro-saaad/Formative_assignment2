@@ -1,0 +1,102 @@
+rules_version = '2';
+
+// Access control for the Campus Incidents app.
+//   users/{uid}       profile; role is "student" or "staff"
+//   incidents/{id}    incident reports with an embedded status history
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function profile() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isStaff() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && profile().role == 'staff';
+    }
+
+    function validText(value, min, max) {
+      return value is string && value.size() >= min && value.size() <= max;
+    }
+
+    function validCategory(c) {
+      return c in ['facilities', 'water', 'electricity', 'safety', 'sanitation', 'furniture'];
+    }
+
+    function validStatus(s) {
+      return s in ['submitted', 'inProgress', 'resolved'];
+    }
+
+    function statusRank(s) {
+      return s == 'submitted' ? 0 : (s == 'inProgress' ? 1 : 2);
+    }
+
+    // ---------- users ----------
+    match /users/{uid} {
+      // Your own profile, or any profile for staff.
+      allow read: if isSelf(uid) || isStaff();
+
+      // Everyone signs up as a student. Staff is granted by an admin script.
+      allow create: if isSelf(uid)
+        && request.resource.data.keys().hasOnly(['name', 'email', 'role', 'department', 'campus', 'createdAt'])
+        && request.resource.data.role == 'student'
+        && validText(request.resource.data.name, 2, 60)
+        && request.resource.data.email == request.auth.token.email;
+
+      // Profile edits may not touch role, email or createdAt.
+      allow update: if isSelf(uid)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'department', 'campus'])
+        && validText(request.resource.data.name, 2, 60);
+
+      allow delete: if false;
+    }
+
+    // ---------- incidents ----------
+    match /incidents/{incidentId} {
+      // Any signed-in user can browse reports.
+      allow read: if signedIn();
+
+      // A new report must belong to its author and start as "submitted".
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+             'title', 'description', 'category', 'location', 'status',
+             'reporterId', 'reporterName', 'createdAt', 'updatedAt',
+             'photoUrl', 'photoPath', 'history'])
+        && request.resource.data.reporterId == request.auth.uid
+        && request.resource.data.status == 'submitted'
+        && validText(request.resource.data.title, 3, 80)
+        && validText(request.resource.data.description, 10, 1000)
+        && validText(request.resource.data.location, 2, 80)
+        && validCategory(request.resource.data.category)
+        && request.resource.data.history is list
+        && request.resource.data.history.size() == 1
+        && request.resource.data.history[0].status == 'submitted'
+        && request.resource.data.history[0].changedBy == request.auth.uid
+        && (request.resource.data.photoUrl == null
+            || request.resource.data.photoUrl.matches('https://wkjdfzafkuwigelkxiir[.]supabase[.]co/storage/v1/object/public/incident-photos/.*'));
+
+      // Only staff change status: forward only, one history entry per change.
+      allow update: if isStaff()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt', 'history'])
+        && validStatus(request.resource.data.status)
+        && statusRank(request.resource.data.status) > statusRank(resource.data.status)
+        && request.resource.data.history.size() == resource.data.history.size() + 1
+        && request.resource.data.history[resource.data.history.size()].status == request.resource.data.status
+        && request.resource.data.history[resource.data.history.size()].changedBy == request.auth.uid;
+
+      // Reporters can withdraw their own report until work starts.
+      allow delete: if signedIn()
+        && resource.data.reporterId == request.auth.uid
+        && resource.data.status == 'submitted';
+    }
+  }
+}
