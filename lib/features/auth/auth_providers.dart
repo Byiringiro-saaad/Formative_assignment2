@@ -3,13 +3,14 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/config/app_config.dart';
 import '../../core/providers/firebase_providers.dart';
 import '../../data/models/app_user.dart';
 import '../../data/models/user_role.dart';
 
 /// The signed-in Firebase user, or null when signed out.
 final authStateProvider = StreamProvider<User?>(
-  (ref) => ref.watch(authRepositoryProvider).authStateChanges(),
+  (ref) => ref.watch(authRepositoryProvider).userChanges(),
 );
 
 /// The signed-in user's profile (name, role, ...), or null when signed out.
@@ -18,7 +19,10 @@ final authStateProvider = StreamProvider<User?>(
 /// the user is never stuck on the loading screen.
 final currentUserProvider = StreamProvider<AppUser?>((ref) {
   final user = ref.watch(authStateProvider).value;
-  if (user == null) return Stream.value(null);
+  // Non-ALU accounts never get a profile; the router shows them a notice.
+  if (user == null || !AppConfig.isAllowedEmail(user.email)) {
+    return Stream.value(null);
+  }
 
   final users = ref.watch(userRepositoryProvider);
   var repaired = false;
@@ -78,6 +82,25 @@ class AuthController extends AsyncNotifier<void> {
 
   Future<bool> sendPasswordReset(String email) =>
       _run(() => ref.read(authRepositoryProvider).sendPasswordReset(email));
+
+  Future<bool> resendVerification() =>
+      _run(() => ref.read(authRepositoryProvider).sendEmailVerification());
+
+  /// Checks with Firebase whether the user has opened the verification link.
+  /// Returns true once verified; the router then opens the app.
+  Future<bool> checkVerified() async {
+    state = const AsyncLoading();
+    try {
+      final verified = await ref.read(authRepositoryProvider).reloadUser();
+      if (!ref.mounted) return verified;
+      state = const AsyncData(null);
+      if (verified) ref.invalidate(authStateProvider);
+      return verified;
+    } catch (e, st) {
+      if (ref.mounted) state = AsyncError(e, st);
+      return false;
+    }
+  }
 
   Future<void> signOut() => ref.read(authRepositoryProvider).signOut();
 

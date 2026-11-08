@@ -7,6 +7,9 @@ class Routes {
   static const signUp = '/sign-up';
   static const forgotPassword = '/forgot-password';
 
+  /// Shown to signed-in users until they verify their ALU email.
+  static const verifyEmail = '/verify-email';
+
   // Bottom-navigation tabs.
   static const home = '/';
   static const reports = '/reports';

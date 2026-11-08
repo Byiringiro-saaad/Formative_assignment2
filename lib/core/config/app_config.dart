@@ -17,4 +17,14 @@ class AppConfig {
 
   /// Largest photo we upload, after compression on the device.
   static const maxPhotoBytes = 5 * 1024 * 1024;
+
+  /// Only ALU accounts may use the app: students and staff.
+  /// The Firestore rules and storage policies check the same list.
+  static const allowedEmailDomains = ['alustudent.com', 'alueducation.com'];
+
+  /// True when [email] ends in one of [allowedEmailDomains].
+  static bool isAllowedEmail(String? email) {
+    final e = (email ?? '').trim().toLowerCase();
+    return allowedEmailDomains.any((d) => e.endsWith('@$d'));
+  }
 }

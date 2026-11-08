@@ -5,21 +5,24 @@
 //   GOOGLE_APPLICATION_CREDENTIALS=/path/to/key.json node seed_demo.mjs
 //   GOOGLE_APPLICATION_CREDENTIALS=/path/to/key.json node seed_demo.mjs --clear
 //
-// Demo accounts (password for all: Campus2026):
-//   amina.student@campus.demo   student
-//   brian.student@campus.demo   student
-//   grace.staff@campus.demo     staff
+// Demo accounts (password for all: Campus2026). They are created already
+// verified, because the app only admits verified ALU email addresses:
+//   demo.amina@alustudent.com    student
+//   demo.brian@alustudent.com    student
+//   demo.grace@alueducation.com  staff
 import { applicationDefault, initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { Timestamp, getFirestore } from 'firebase-admin/firestore';
 
 const PASSWORD = 'Campus2026';
+// Earlier demo accounts that the ALU-only rules no longer admit.
+const RETIRED = ['amina.student@campus.demo', 'brian.student@campus.demo', 'grace.staff@campus.demo'];
 const SEED_PREFIX = 'demo-';
 
 const people = [
-  { key: 'amina', email: 'amina.student@campus.demo', name: 'Amina Hassan', role: 'student', department: 'Computer Science', campus: 'Kigali, Rwanda' },
-  { key: 'brian', email: 'brian.student@campus.demo', name: 'Brian Kamau', role: 'student', department: 'Software Engineering', campus: 'Kigali, Rwanda' },
-  { key: 'grace', email: 'grace.staff@campus.demo', name: 'Grace Uwase', role: 'staff', department: 'Facilities Office', campus: 'Kigali, Rwanda' },
+  { key: 'amina', email: 'demo.amina@alustudent.com', name: 'Amina Hassan', role: 'student', department: 'Computer Science', campus: 'Kigali, Rwanda' },
+  { key: 'brian', email: 'demo.brian@alustudent.com', name: 'Brian Kamau', role: 'student', department: 'Software Engineering', campus: 'Kigali, Rwanda' },
+  { key: 'grace', email: 'demo.grace@alueducation.com', name: 'Grace Uwase', role: 'staff', department: 'Facilities Office', campus: 'Kigali, Rwanda' },
 ];
 
 // hoursAgo: when it was reported. steps: later status changes by staff.
@@ -61,10 +64,10 @@ async function upsertUser(p) {
   let user;
   try {
     user = await auth.getUserByEmail(p.email);
-    await auth.updateUser(user.uid, { password: PASSWORD, displayName: p.name });
+    await auth.updateUser(user.uid, { password: PASSWORD, displayName: p.name, emailVerified: true });
   } catch (e) {
     if (e.code !== 'auth/user-not-found') throw e;
-    user = await auth.createUser({ email: p.email, password: PASSWORD, displayName: p.name });
+    user = await auth.createUser({ email: p.email, password: PASSWORD, displayName: p.name, emailVerified: true });
   }
   await db.doc(`users/${user.uid}`).set({
     name: p.name, email: p.email, role: p.role, department: p.department, campus: p.campus,
@@ -75,6 +78,17 @@ async function upsertUser(p) {
 
 const existing = await db.collection('incidents').get();
 await Promise.all(existing.docs.filter((d) => d.id.startsWith(SEED_PREFIX)).map((d) => d.ref.delete()));
+
+for (const email of RETIRED) {
+  try {
+    const old = await auth.getUserByEmail(email);
+    await db.doc(`users/${old.uid}`).delete();
+    await auth.deleteUser(old.uid);
+    console.log(`Removed retired demo account ${email}.`);
+  } catch (e) {
+    if (e.code !== 'auth/user-not-found') throw e;
+  }
+}
 
 if (process.argv.includes('--clear')) {
   console.log('Removed sample reports.');

@@ -10,9 +10,9 @@ The brief asks the video to show authentication, submitting a report, browsing a
    GOOGLE_APPLICATION_CREDENTIALS=/path/to/key.json node seed_demo.mjs
    ```
 2. Demo accounts (password `Campus2026`):
-   - Student: `amina.student@campus.demo`
-   - Student: `brian.student@campus.demo`
-   - Staff: `grace.staff@campus.demo`
+   - Student: `demo.amina@alustudent.com`
+   - Student: `demo.brian@alustudent.com`
+   - Staff: `demo.grace@alueducation.com`
 3. Have a photo of a campus problem ready on the phone or simulator (for example a broken chair or leaking tap).
 4. Start the app signed out.
 

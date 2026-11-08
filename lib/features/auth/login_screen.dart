@@ -66,7 +66,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   const SizedBox(height: 32),
                   LabeledField(
                     label: 'Email',
-                    hint: 'you@university.edu',
+                    hint: 'you@alustudent.com',
                     controller: _email,
                     validator: Validators.email,
                     keyboardType: TextInputType.emailAddress,

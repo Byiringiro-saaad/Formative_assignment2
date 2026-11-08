@@ -8,7 +8,9 @@ class AuthRepository {
 
   final FirebaseAuth _auth;
 
-  Stream<User?> authStateChanges() => _auth.authStateChanges();
+  /// Fires on sign-in, sign-out and profile changes such as a reload after
+  /// the user verifies their email.
+  Stream<User?> userChanges() => _auth.userChanges();
 
   User? get currentUser => _auth.currentUser;
 
@@ -35,7 +37,36 @@ class AuthRepository {
         password: password,
       );
       await cred.user!.updateDisplayName(name.trim());
+      // A failed send isn't fatal: the verify screen offers to resend.
+      try {
+        await cred.user!.sendEmailVerification();
+      } on FirebaseAuthException catch (_) {}
       return cred.user!;
+    } on FirebaseAuthException catch (e) {
+      throw AuthFailure.fromCode(e.code);
+    }
+  }
+
+  /// Sends the verification link again to the signed-in user.
+  Future<void> sendEmailVerification() async {
+    try {
+      await _auth.currentUser?.sendEmailVerification();
+    } on FirebaseAuthException catch (e) {
+      throw AuthFailure.fromCode(e.code);
+    }
+  }
+
+  /// Reloads the signed-in user from Firebase and refreshes their ID token,
+  /// so a newly verified email reaches the security rules straight away.
+  /// Returns whether the email is now verified.
+  Future<bool> reloadUser() async {
+    final user = _auth.currentUser;
+    if (user == null) return false;
+    try {
+      await user.reload();
+      final fresh = _auth.currentUser ?? user;
+      if (fresh.emailVerified) await fresh.getIdToken(true);
+      return fresh.emailVerified;
     } on FirebaseAuthException catch (e) {
       throw AuthFailure.fromCode(e.code);
     }

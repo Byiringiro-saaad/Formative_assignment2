@@ -90,7 +90,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                 else ...[
                   LabeledField(
                     label: 'Email',
-                    hint: 'you@university.edu',
+                    hint: 'you@alustudent.com',
                     controller: _email,
                     validator: Validators.email,
                     keyboardType: TextInputType.emailAddress,

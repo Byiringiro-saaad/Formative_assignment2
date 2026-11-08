@@ -14,12 +14,24 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == uid;
     }
 
+    // Only ALU accounts: students and staff. Must match AppConfig in the app.
+    function aluEmail() {
+      return signedIn()
+        && request.auth.token.email is string
+        && request.auth.token.email.lower().matches('.*@(alustudent|alueducation)[.]com');
+    }
+
+    // A signed-in ALU account whose email address has been verified.
+    function verified() {
+      return aluEmail() && request.auth.token.email_verified == true;
+    }
+
     function profile() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
     function isStaff() {
-      return signedIn()
+      return verified()
         && exists(/databases/$(database)/documents/users/$(request.auth.uid))
         && profile().role == 'staff';
     }
@@ -45,8 +57,11 @@ service cloud.firestore {
       // Your own profile, or any profile for staff.
       allow read: if isSelf(uid) || isStaff();
 
-      // Everyone signs up as a student. Staff is granted by an admin script.
+      // Everyone signs up as a student, with an ALU email. The profile is
+      // written at sign-up, before the email is verified. Staff is granted
+      // by an admin script.
       allow create: if isSelf(uid)
+        && aluEmail()
         && request.resource.data.keys().hasOnly(['name', 'email', 'role', 'department', 'campus', 'createdAt'])
         && request.resource.data.role == 'student'
         && validText(request.resource.data.name, 2, 60)
@@ -89,12 +104,12 @@ service cloud.firestore {
     }
 
     match /incidents/{incidentId} {
-      // Any signed-in user can browse reports.
-      allow read: if signedIn();
+      // Any verified ALU user can browse reports.
+      allow read: if verified();
 
       // A new report must belong to its author, carry the author's real
       // name, start as "submitted" and use server time.
-      allow create: if signedIn()
+      allow create: if verified()
         && exists(/databases/$(database)/documents/users/$(request.auth.uid))
         && request.resource.data.keys().hasOnly([
              'title', 'description', 'category', 'location', 'status',
@@ -126,7 +141,7 @@ service cloud.firestore {
         && validChange(request.resource.data.history[resource.data.history.size()], request.resource.data.status);
 
       // Reporters can withdraw their own report until work starts.
-      allow delete: if signedIn()
+      allow delete: if verified()
         && resource.data.reporterId == request.auth.uid
         && resource.data.status == 'submitted';
     }

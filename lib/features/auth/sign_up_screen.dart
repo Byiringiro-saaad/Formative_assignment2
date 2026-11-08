@@ -84,10 +84,10 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                   ),
                   const SizedBox(height: 20),
                   LabeledField(
-                    label: 'Email',
-                    hint: 'you@university.edu',
+                    label: 'ALU email',
+                    hint: 'you@alustudent.com',
                     controller: _email,
-                    validator: Validators.email,
+                    validator: Validators.aluEmail,
                     keyboardType: TextInputType.emailAddress,
                     textInputAction: TextInputAction.next,
                     prefixIcon: Icons.mail_outline_rounded,

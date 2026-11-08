@@ -8,11 +8,15 @@ void main() {
     bool loading = false,
     bool signedIn = false,
     bool profile = false,
+    bool allowed = true,
+    bool verified = true,
   }) => resolveRedirect(
     location: location,
     authLoading: loading,
     signedIn: signedIn,
     profileReady: profile,
+    emailAllowed: allowed,
+    emailVerified: verified,
   );
 
   test('shows the splash while auth is loading', () {
@@ -43,5 +47,30 @@ void main() {
       Routes.signedInHome,
     );
     expect(go(Routes.profile, signedIn: true, profile: true), isNull);
+  });
+
+  test('unverified users only see the verify-email screen', () {
+    expect(
+      go(Routes.home, signedIn: true, profile: true, verified: false),
+      Routes.verifyEmail,
+    );
+    expect(
+      go(Routes.incident('x'), signedIn: true, profile: true, verified: false),
+      Routes.verifyEmail,
+    );
+    expect(go(Routes.verifyEmail, signedIn: true, verified: false), isNull);
+  });
+
+  test('non-ALU accounts are held on the verify-email screen', () {
+    expect(go(Routes.home, signedIn: true, allowed: false), Routes.verifyEmail);
+    expect(go(Routes.verifyEmail, signedIn: true, allowed: false), isNull);
+  });
+
+  test('a newly verified user moves on into the app', () {
+    expect(
+      go(Routes.verifyEmail, signedIn: true, profile: true),
+      Routes.signedInHome,
+    );
+    expect(go(Routes.verifyEmail, signedIn: true), Routes.splash);
   });
 }

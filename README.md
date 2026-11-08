@@ -72,9 +72,9 @@ Load the demo data with `tool/seed_demo.mjs` (see below). All demo accounts use 
 
 | Role | Email |
 |---|---|
-| Student | `amina.student@campus.demo` |
-| Student | `brian.student@campus.demo` |
-| Staff | `grace.staff@campus.demo` |
+| Student | `demo.amina@alustudent.com` |
+| Student | `demo.brian@alustudent.com` |
+| Staff | `demo.grace@alueducation.com` |
 
 ## Admin tools
 

@@ -1,3 +1,5 @@
+import '../config/app_config.dart';
+
 /// Form validators shared by every screen. Each returns an error message, or
 /// null when the value is valid (the contract `TextFormField` expects).
 class Validators {
@@ -9,6 +11,16 @@ class Validators {
     final v = value?.trim() ?? '';
     if (v.isEmpty) return 'Enter your email address.';
     if (!_email.hasMatch(v)) return 'Enter a valid email address.';
+    return null;
+  }
+
+  /// Sign-up only accepts ALU addresses (see [AppConfig.allowedEmailDomains]).
+  static String? aluEmail(String? value) {
+    final error = email(value);
+    if (error != null) return error;
+    if (!AppConfig.isAllowedEmail(value)) {
+      return 'Use your ALU email (@alustudent.com or @alueducation.com).';
+    }
     return null;
   }
 

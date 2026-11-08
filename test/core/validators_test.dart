@@ -19,6 +19,23 @@ void main() {
     });
   });
 
+  group('ALU email', () {
+    test('accepts student and staff addresses, in any case', () {
+      expect(Validators.aluEmail('a.mina@alustudent.com'), isNull);
+      expect(Validators.aluEmail(' G.Uwase@ALUEducation.com '), isNull);
+    });
+    test('rejects other domains, including look-alikes', () {
+      const message =
+          'Use your ALU email (@alustudent.com or @alueducation.com).';
+      expect(Validators.aluEmail('amina@gmail.com'), message);
+      expect(Validators.aluEmail('amina@alustudent.com.evil.io'), message);
+      expect(Validators.aluEmail('amina@notalustudent.com'), message);
+    });
+    test('still reports malformed addresses first', () {
+      expect(Validators.aluEmail(''), 'Enter your email address.');
+    });
+  });
+
   group('password', () {
     test('needs 8+ characters with letters and numbers', () {
       expect(Validators.password('secret12'), isNull);

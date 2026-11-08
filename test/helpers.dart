@@ -15,9 +15,16 @@ import 'fakes.dart';
 
 /// Test doubles shared by the widget tests.
 class TestBackend {
-  TestBackend({MockUser? user, bool signedIn = false})
-    : db = FakeFirebaseFirestore(),
-      auth = MockFirebaseAuth(mockUser: user, signedIn: signedIn);
+  TestBackend({
+    MockUser? user,
+    bool signedIn = false,
+    bool verifyEmailAutomatically = true,
+  }) : db = FakeFirebaseFirestore(),
+       auth = MockFirebaseAuth(
+         mockUser: user,
+         signedIn: signedIn,
+         verifyEmailAutomatically: verifyEmailAutomatically,
+       );
 
   final FakeFirebaseFirestore db;
   final MockFirebaseAuth auth;
@@ -39,7 +46,7 @@ class TestBackend {
     _names[uid] = name;
     return db.doc('users/$uid').set({
       'name': name,
-      'email': '$uid@alu.edu',
+      'email': '$uid@alustudent.com',
       'role': role,
       'department': 'Computer Science',
       'campus': 'Kigali, Rwanda',

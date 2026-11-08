@@ -12,7 +12,7 @@ import '../helpers.dart';
 void main() {
   final amina = MockUser(
     uid: 'amina',
-    email: 'amina@alu.edu',
+    email: 'amina@alustudent.com',
     displayName: 'Amina Hassan',
   );
 

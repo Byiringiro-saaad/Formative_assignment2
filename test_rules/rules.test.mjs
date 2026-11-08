@@ -16,9 +16,11 @@ const longAgo = Timestamp.fromDate(new Date('2020-01-01T00:00:00Z'));
 const BASE = 'https://wkjdfzafkuwigelkxiir.supabase.co/storage/v1/object/public/incident-photos/';
 const photo = (path) => ({ photoPath: path, photoUrl: BASE + path });
 
-const student = () => env.authenticatedContext('amina', { email: 'amina@alu.edu' }).firestore();
-const other = () => env.authenticatedContext('brian', { email: 'brian@alu.edu' }).firestore();
-const staff = () => env.authenticatedContext('staff1', { email: 'staff@alu.edu' }).firestore();
+const as = (uid, email, verified = true) =>
+  env.authenticatedContext(uid, { email, email_verified: verified }).firestore();
+const student = () => as('amina', 'amina@alustudent.com');
+const other = () => as('brian', 'brian@alustudent.com');
+const staff = () => as('staff1', 'staff@alueducation.com');
 const anon = () => env.unauthenticatedContext().firestore();
 
 const newIncident = (overrides = {}) => ({
@@ -52,22 +54,47 @@ beforeEach(async () => {
   await env.clearFirestore();
   await env.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore();
-    await setDoc(doc(db, 'users/staff1'), { name: 'Campus Staff', email: 'staff@alu.edu', role: 'staff', department: 'Facilities', campus: 'Kigali', createdAt: now });
-    await setDoc(doc(db, 'users/amina'), { name: 'Amina Hassan', email: 'amina@alu.edu', role: 'student', department: 'CS', campus: 'Kigali', createdAt: now });
-    await setDoc(doc(db, 'users/brian'), { name: 'Brian Kamau', email: 'brian@alu.edu', role: 'student', department: '', campus: '', createdAt: now });
+    await setDoc(doc(db, 'users/staff1'), { name: 'Campus Staff', email: 'staff@alueducation.com', role: 'staff', department: 'Facilities', campus: 'Kigali', createdAt: now });
+    await setDoc(doc(db, 'users/amina'), { name: 'Amina Hassan', email: 'amina@alustudent.com', role: 'student', department: 'CS', campus: 'Kigali', createdAt: now });
+    await setDoc(doc(db, 'users/brian'), { name: 'Brian Kamau', email: 'brian@alustudent.com', role: 'student', department: '', campus: '', createdAt: now });
     await setDoc(doc(db, 'incidents/existing'), { ...newIncident(), createdAt: now, updatedAt: now });
   });
 });
 
+describe('ALU accounts only', () => {
+  test('a non-ALU account cannot create a profile', async () => {
+    const outsider = as('eve', 'eve@gmail.com');
+    await assertFails(setDoc(doc(outsider, 'users/eve'), {
+      name: 'Eve', email: 'eve@gmail.com', role: 'student', department: '', campus: '', createdAt: now,
+    }));
+  });
+  test('a non-ALU account cannot read or file reports', async () => {
+    const outsider = as('eve', 'eve@gmail.com');
+    await assertFails(getDoc(doc(outsider, 'incidents/existing')));
+    await assertFails(setDoc(doc(outsider, 'incidents/n1'), newIncident({ reporterId: 'eve' })));
+  });
+  test('an unverified ALU account cannot read or file reports', async () => {
+    const unverified = as('amina', 'amina@alustudent.com', false);
+    await assertFails(getDoc(doc(unverified, 'incidents/existing')));
+    await assertFails(setDoc(doc(unverified, 'incidents/n1'), newIncident()));
+  });
+  test('an unverified staff account cannot change a status', async () => {
+    const unverified = as('staff1', 'staff@alueducation.com', false);
+    await assertFails(updateDoc(doc(unverified, 'incidents/existing'), {
+      status: 'inProgress', updatedAt: serverTimestamp(), history: arrayUnion(change('inProgress')),
+    }));
+  });
+});
+
 describe('users', () => {
-  const profile = (role = 'student') => ({ name: 'Brian K', email: 'brian@alu.edu', role, department: '', campus: '', createdAt: now });
+  const profile = (role = 'student') => ({ name: 'Brian K', email: 'brian@alustudent.com', role, department: '', campus: '', createdAt: now });
 
   test('a user can create their own student profile', async () => {
-    const fresh = env.authenticatedContext('carol', { email: 'brian@alu.edu' }).firestore();
+    const fresh = as('carol', 'brian@alustudent.com', false);
     await assertSucceeds(setDoc(doc(fresh, 'users/carol'), profile()));
   });
   test('a user cannot sign themselves up as staff', async () => {
-    const fresh = env.authenticatedContext('carol', { email: 'brian@alu.edu' }).firestore();
+    const fresh = as('carol', 'brian@alustudent.com', false);
     await assertFails(setDoc(doc(fresh, 'users/carol'), profile('staff')));
   });
   test('a user cannot create a profile for someone else', async () => {

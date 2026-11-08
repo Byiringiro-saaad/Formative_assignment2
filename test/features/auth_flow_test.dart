@@ -7,7 +7,7 @@ import '../helpers.dart';
 void main() {
   final amina = MockUser(
     uid: 'amina',
-    email: 'amina@alu.edu',
+    email: 'amina@alustudent.com',
     displayName: 'Amina Hassan',
   );
 
@@ -39,7 +39,10 @@ void main() {
     await backend.addUser('amina');
     await tester.pumpApp(backend);
 
-    await tester.enterText(find.byType(TextFormField).at(0), 'amina@alu.edu');
+    await tester.enterText(
+      find.byType(TextFormField).at(0),
+      'amina@alustudent.com',
+    );
     await tester.enterText(find.byType(TextFormField).at(1), 'secret12');
     await tester.tap(find.text('Sign In'));
     await tester.pumpAndSettle();
@@ -66,7 +69,7 @@ void main() {
 
   testWidgets('sign up creates a student profile', (tester) async {
     final backend = TestBackend(
-      user: MockUser(uid: 'brian', email: 'brian@alu.edu'),
+      user: MockUser(uid: 'brian', email: 'brian@alustudent.com'),
     );
     await tester.pumpApp(backend);
 
@@ -76,7 +79,7 @@ void main() {
 
     final fields = find.byType(TextFormField);
     await tester.enterText(fields.at(0), 'Brian Kamau');
-    await tester.enterText(fields.at(1), 'brian@alu.edu');
+    await tester.enterText(fields.at(1), 'brian@alustudent.com');
     await tester.enterText(fields.at(2), 'Engineering');
     await tester.enterText(fields.at(3), 'secret12');
     await tester.enterText(fields.at(4), 'secret99');
@@ -101,6 +104,92 @@ void main() {
     );
   });
 
+  testWidgets('sign up only accepts ALU email addresses', (tester) async {
+    await tester.pumpApp(TestBackend());
+    await tester.tap(find.text('Sign up'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextFormField).at(1), 'brian@gmail.com');
+    await tester.ensureVisible(find.text('Create Account'));
+    await tester.tap(find.text('Create Account'));
+    await tester.pump();
+
+    expect(
+      find.text('Use your ALU email (@alustudent.com or @alueducation.com).'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('a new account must verify its email before using the app', (
+    tester,
+  ) async {
+    final backend = TestBackend(verifyEmailAutomatically: false);
+    await tester.pumpApp(backend);
+    await tester.tap(find.text('Sign up'));
+    await tester.pumpAndSettle();
+
+    final fields = find.byType(TextFormField);
+    await tester.enterText(fields.at(0), 'Brian Kamau');
+    await tester.enterText(fields.at(1), 'brian@alustudent.com');
+    await tester.enterText(fields.at(3), 'secret12');
+    await tester.enterText(fields.at(4), 'secret12');
+    await tester.ensureVisible(find.text('Create Account'));
+    await tester.tap(find.text('Create Account'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Verify your email'), findsOneWidget);
+    expect(find.textContaining('brian@alustudent.com'), findsWidgets);
+    // The profile is saved at sign-up, so nothing is lost while verifying.
+    expect((await backend.db.collection('users').get()).docs, hasLength(1));
+
+    await tester.tap(find.text("I've Verified My Email"));
+    await tester.pumpAndSettle();
+    expect(
+      find.text('Not verified yet. Open the link in the email first.'),
+      findsOneWidget,
+    );
+    expect(find.text('Verify your email'), findsOneWidget);
+
+    await tester.tap(find.text('Resend Email'));
+    await tester.pumpAndSettle();
+    expect(
+      find.text('Verification email sent to brian@alustudent.com.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('an unverified user can only sign out', (tester) async {
+    final backend = TestBackend(
+      user: MockUser(
+        uid: 'amina',
+        email: 'amina@alustudent.com',
+        isEmailVerified: false,
+      ),
+      signedIn: true,
+    );
+    await backend.addUser('amina');
+    await tester.pumpApp(backend);
+
+    expect(find.text('Verify your email'), findsOneWidget);
+    expect(find.text('Report'), findsNothing);
+
+    await tester.tap(find.text('Sign Out'));
+    await tester.pumpAndSettle();
+    expect(find.text('Welcome back'), findsOneWidget);
+  });
+
+  testWidgets('accounts outside ALU are turned away', (tester) async {
+    final backend = TestBackend(
+      user: MockUser(uid: 'eve', email: 'eve@gmail.com'),
+      signedIn: true,
+    );
+    await tester.pumpApp(backend);
+
+    expect(find.text('ALU email required'), findsOneWidget);
+    expect(find.text("I've Verified My Email"), findsNothing);
+    expect((await backend.db.collection('users').get()).docs, isEmpty);
+  });
+
   testWidgets('signing out returns to the login screen', (tester) async {
     final backend = TestBackend(user: amina, signedIn: true);
     await backend.addUser('amina');
@@ -121,10 +210,13 @@ void main() {
 
     await tester.tap(find.text('Forgot password?'));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextFormField), 'amina@alu.edu');
+    await tester.enterText(find.byType(TextFormField), 'amina@alustudent.com');
     await tester.tap(find.text('Send Reset Link'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Check amina@alu.edu for a reset link.'), findsOneWidget);
+    expect(
+      find.text('Check amina@alustudent.com for a reset link.'),
+      findsOneWidget,
+    );
   });
 }

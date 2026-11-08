@@ -15,13 +15,13 @@ void main() {
   const amina = AppUser(
     uid: 'amina',
     name: 'Amina Hassan',
-    email: 'amina@alu.edu',
+    email: 'amina@alustudent.com',
     role: UserRole.student,
   );
   const staff = AppUser(
     uid: 'staff1',
     name: 'Campus Staff',
-    email: 'staff@alu.edu',
+    email: 'staff@alustudent.com',
     role: UserRole.staff,
   );
 
@@ -72,7 +72,7 @@ void main() {
         by: const AppUser(
           uid: 'brian',
           name: 'Brian',
-          email: 'b@alu.edu',
+          email: 'b@alustudent.com',
           role: UserRole.student,
         ),
       );
@@ -132,13 +132,13 @@ void main() {
     test('sign-up and profile repair can race without losing data', () async {
       final repo = UserRepository(FakeFirebaseFirestore());
       // The repair lands first with a fallback name ...
-      await repo.ensureProfile(uid: 'amina', email: 'amina@alu.edu');
+      await repo.ensureProfile(uid: 'amina', email: 'amina@alustudent.com');
       // ... then sign-up saves the real details over it.
       await repo.createProfile(
         amina.copyForTest(department: 'Computer Science'),
       );
       // A late repair never overwrites them.
-      await repo.ensureProfile(uid: 'amina', email: 'amina@alu.edu');
+      await repo.ensureProfile(uid: 'amina', email: 'amina@alustudent.com');
 
       final user = await repo.watchUser('amina').first;
       expect(user!.name, 'Amina Hassan');
@@ -182,16 +182,16 @@ void main() {
 
       final user = await repo.signUp(
         name: ' Amina ',
-        email: 'amina@alu.edu ',
+        email: 'amina@alustudent.com ',
         password: 'secret123',
       );
-      expect(user.email, 'amina@alu.edu');
+      expect(user.email, 'amina@alustudent.com');
       expect(repo.currentUser, isNotNull);
 
       await repo.signOut();
       expect(repo.currentUser, isNull);
 
-      await repo.signIn(email: 'amina@alu.edu', password: 'secret123');
+      await repo.signIn(email: 'amina@alustudent.com', password: 'secret123');
       expect(repo.currentUser, isNotNull);
     });
 

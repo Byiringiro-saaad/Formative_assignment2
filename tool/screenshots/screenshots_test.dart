@@ -15,12 +15,12 @@ import '../../test/helpers.dart';
 void main() {
   final amina = MockUser(
     uid: 'amina',
-    email: 'amina@alu.edu',
+    email: 'amina@alustudent.com',
     displayName: 'Amina Hassan',
   );
   final grace = MockUser(
     uid: 'grace',
-    email: 'grace@alu.edu',
+    email: 'grace@alustudent.com',
     displayName: 'Grace Uwase',
   );
 
