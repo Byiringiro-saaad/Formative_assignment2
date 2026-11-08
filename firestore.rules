@@ -80,14 +80,14 @@ service cloud.firestore {
       return 'https://wkjdfzafkuwigelkxiir.supabase.co/storage/v1/object/public/incident-photos/';
     }
 
-    // A history entry written by the current user, dated around now. Array
+    // A history entry written by the current user under [name], dated around now. Array
     // entries can't use server timestamps, so allow some clock drift.
-    function validChange(entry, status) {
+    function validChange(entry, status, name) {
       return entry is map
         && entry.keys().hasOnly(['status', 'changedAt', 'changedBy', 'changedByName', 'note'])
         && entry.status == status
         && entry.changedBy == request.auth.uid
-        && entry.changedByName == profile().name
+        && entry.changedByName == name
         && entry.changedAt is timestamp
         && entry.changedAt > request.time - duration.value(1, 'h')
         && entry.changedAt < request.time + duration.value(1, 'h')
@@ -103,20 +103,29 @@ service cloud.firestore {
             && data.photoUrl == photoBase() + data.photoPath);
     }
 
+    // The name a new report is filed under: the reporter's real name, or
+    // "Anonymous" so other students can't see who filed it.
+    function reporterLabel() {
+      return request.resource.data.get('anonymous', false) == true
+        ? 'Anonymous'
+        : profile().name;
+    }
+
     match /incidents/{incidentId} {
       // Any verified ALU user can browse reports.
       allow read: if verified();
 
       // A new report must belong to its author, carry the author's real
-      // name, start as "submitted" and use server time.
+      // name (or "Anonymous"), start as "submitted" and use server time.
       allow create: if verified()
         && exists(/databases/$(database)/documents/users/$(request.auth.uid))
         && request.resource.data.keys().hasOnly([
              'title', 'description', 'category', 'location', 'status',
              'reporterId', 'reporterName', 'createdAt', 'updatedAt',
-             'photoUrl', 'photoPath', 'history'])
+             'photoUrl', 'photoPath', 'history', 'anonymous'])
+        && request.resource.data.get('anonymous', false) is bool
         && request.resource.data.reporterId == request.auth.uid
-        && request.resource.data.reporterName == profile().name
+        && request.resource.data.reporterName == reporterLabel()
         && request.resource.data.status == 'submitted'
         && request.resource.data.createdAt == request.time
         && request.resource.data.updatedAt == request.time
@@ -126,7 +135,7 @@ service cloud.firestore {
         && validCategory(request.resource.data.category)
         && request.resource.data.history is list
         && request.resource.data.history.size() == 1
-        && validChange(request.resource.data.history[0], 'submitted')
+        && validChange(request.resource.data.history[0], 'submitted', reporterLabel())
         && validPhoto(request.resource.data, incidentId);
 
       // Only staff change status: forward only, earlier history untouched,
@@ -138,7 +147,8 @@ service cloud.firestore {
         && request.resource.data.updatedAt == request.time
         && request.resource.data.history.size() == resource.data.history.size() + 1
         && request.resource.data.history[0:resource.data.history.size()] == resource.data.history
-        && validChange(request.resource.data.history[resource.data.history.size()], request.resource.data.status);
+        && validChange(request.resource.data.history[resource.data.history.size()],
+                       request.resource.data.status, profile().name);
 
       // Reporters can withdraw their own report until work starts.
       allow delete: if verified()

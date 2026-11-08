@@ -160,6 +160,40 @@ describe('incidents: create and read', () => {
   });
 });
 
+describe('incidents: anonymous reports', () => {
+  const anonymous = (overrides = {}) => newIncident({
+    anonymous: true,
+    reporterName: 'Anonymous',
+    history: [{ status: 'submitted', changedAt: now, changedBy: 'amina', changedByName: 'Anonymous', note: '' }],
+    ...overrides,
+  });
+
+  test('a student can file a report without showing their name', async () => {
+    await assertSucceeds(setDoc(doc(student(), 'incidents/n1'), anonymous()));
+  });
+  test('an anonymous report cannot carry the real name anywhere', async () => {
+    await assertFails(setDoc(doc(student(), 'incidents/n1'), anonymous({ reporterName: 'Amina Hassan' })));
+    await assertFails(setDoc(doc(student(), 'incidents/n2'), anonymous({
+      history: [{ status: 'submitted', changedAt: now, changedBy: 'amina', changedByName: 'Amina Hassan', note: '' }],
+    })));
+  });
+  test('a named report cannot pretend to be anonymous', async () => {
+    await assertFails(setDoc(doc(student(), 'incidents/n1'), anonymous({ anonymous: false })));
+    await assertFails(setDoc(doc(student(), 'incidents/n2'), anonymous({ anonymous: 'yes' })));
+  });
+  test('only staff can look up who filed an anonymous report', async () => {
+    await assertFails(getDoc(doc(other(), 'users/amina')));
+    await assertSucceeds(getDoc(doc(staff(), 'users/amina')));
+  });
+  test('staff can still update an anonymous report', async () => {
+    await env.withSecurityRulesDisabled((ctx) =>
+      setDoc(doc(ctx.firestore(), 'incidents/anon'), { ...anonymous(), createdAt: now, updatedAt: now }));
+    await assertSucceeds(updateDoc(doc(staff(), 'incidents/anon'), {
+      status: 'inProgress', updatedAt: serverTimestamp(), history: arrayUnion(change('inProgress')),
+    }));
+  });
+});
+
 describe('incidents: status updates', () => {
   test('staff can move a report forward and add to the timeline', async () => {
     await assertSucceeds(updateDoc(doc(staff(), 'incidents/existing'), {

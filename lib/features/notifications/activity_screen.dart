@@ -55,7 +55,7 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
                 final item = items[i];
                 final s = item.change.status;
                 final headline = staff
-                    ? '${item.incident.reporterName} reported "${item.incident.title}"'
+                    ? '${item.incident.anonymous ? 'Someone' : item.incident.reporterName} reported "${item.incident.title}"'
                     : switch (s) {
                         IncidentStatus.inProgress =>
                           '"${item.incident.title}" is now in progress',

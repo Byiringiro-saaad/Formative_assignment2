@@ -329,13 +329,41 @@ class _HeaderCard extends StatelessWidget {
               text: 'Submitted on ${fullDateTime(incident.createdAt)}',
             ),
             const SizedBox(height: 6),
-            _MetaLine(
-              icon: Icons.person_outline_rounded,
-              text: 'Reported by ${incident.reporterName}',
-            ),
+            _ReporterLine(incident: incident),
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Who filed the report. Anonymous reports show the name only to staff and
+/// to the reporter themself.
+class _ReporterLine extends ConsumerWidget {
+  const _ReporterLine({required this.incident});
+
+  final Incident incident;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(currentUserProvider).value;
+    final text = switch (user) {
+      _ when !incident.anonymous => 'Reported by ${incident.reporterName}',
+      AppUser(:final uid) when uid == incident.reporterId =>
+        'Reported by you (your name is hidden from other students)',
+      AppUser(isStaff: true) => switch (ref
+          .watch(reporterProfileProvider(incident.reporterId))
+          .value) {
+        AppUser(:final name) => 'Reported by $name (anonymous to students)',
+        null => 'Reported anonymously',
+      },
+      _ => 'Reported anonymously',
+    };
+    return _MetaLine(
+      icon: incident.anonymous
+          ? Icons.visibility_off_outlined
+          : Icons.person_outline_rounded,
+      text: text,
     );
   }
 }

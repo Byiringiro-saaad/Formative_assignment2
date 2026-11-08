@@ -33,6 +33,7 @@ class _ReportFormScreenState extends ConsumerState<ReportFormScreen> {
   IncidentCategory? _category;
   String? _location;
   PickedPhoto? _photo;
+  var _anonymous = false;
   var _showCategoryError = false;
 
   @override
@@ -62,6 +63,7 @@ class _ReportFormScreenState extends ConsumerState<ReportFormScreen> {
             description: _description.text,
             location: _resolvedLocation,
             photo: _photo,
+            anonymous: _anonymous,
           ),
         );
     if (incident == null || !mounted) return;
@@ -210,6 +212,41 @@ class _ReportFormScreenState extends ConsumerState<ReportFormScreen> {
                   enabled: !submitting,
                   onChanged: (p) => setState(() => _photo = p),
                   onError: (m) => showMessage(context, m, error: true),
+                ),
+                const SizedBox(height: 16),
+                Material(
+                  color: AppColors.surface,
+                  clipBehavior: Clip.antiAlias,
+                  shape: RoundedRectangleBorder(
+                    side: const BorderSide(color: AppColors.border),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: SwitchListTile(
+                    value: _anonymous,
+                    onChanged: submitting
+                        ? null
+                        : (v) => setState(() => _anonymous = v),
+                    secondary: const Icon(
+                      Icons.visibility_off_outlined,
+                      color: AppColors.primary,
+                    ),
+                    title: const Text(
+                      'Hide my name from other students',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    subtitle: const Text(
+                      'Staff can still see who reported it, so they can '
+                      'follow up.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 28),
                 PrimaryButton(

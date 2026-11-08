@@ -43,7 +43,7 @@ const reports = [
   { id: 'chair-c', by: 'brian', category: 'furniture', title: 'Broken chairs in lecture hall', location: 'Block C', hoursAgo: 30,
     description: 'Four chairs in the front row of the Block C lecture hall have cracked legs and are unsafe to sit on.',
     steps: [{ status: 'inProgress', hoursAgo: 8, note: 'Replacement chairs ordered, arriving Thursday.' }] },
-  { id: 'gate-light', by: 'brian', category: 'safety', title: 'Main gate light not working', location: 'Main Gate', hoursAgo: 50,
+  { id: 'gate-light', by: 'brian', anonymous: true, category: 'safety', title: 'Main gate light not working', location: 'Main Gate', hoursAgo: 50,
     description: 'The security light at the main gate has been off for two nights. The path is very dark after 7pm.' },
   { id: 'socket-a', by: 'amina', category: 'electricity', title: 'Sparking power socket', location: 'Block A', hoursAgo: 100,
     description: 'The power socket next to the window in Block A, Room 101 sparks when a charger is plugged in.',
@@ -102,14 +102,15 @@ const staff = byKey.grace;
 
 for (const r of reports) {
   const reporter = byKey[r.by];
-  const history = [{ status: 'submitted', changedAt: ago(r.hoursAgo), changedBy: uids[r.by], changedByName: reporter.name, note: '' }];
+  const shownName = r.anonymous ? 'Anonymous' : reporter.name;
+  const history = [{ status: 'submitted', changedAt: ago(r.hoursAgo), changedBy: uids[r.by], changedByName: shownName, note: '' }];
   for (const s of r.steps ?? []) {
     history.push({ status: s.status, changedAt: ago(s.hoursAgo), changedBy: uids.grace, changedByName: staff.name, note: s.note });
   }
   const last = history[history.length - 1];
   await db.doc(`incidents/${SEED_PREFIX}${r.id}`).set({
     title: r.title, description: r.description, category: r.category, location: r.location,
-    status: last.status, reporterId: uids[r.by], reporterName: reporter.name,
+    status: last.status, reporterId: uids[r.by], reporterName: shownName, anonymous: r.anonymous === true,
     createdAt: ago(r.hoursAgo), updatedAt: last.changedAt, photoUrl: null, photoPath: null, history,
   });
 }

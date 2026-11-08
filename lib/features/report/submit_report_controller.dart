@@ -25,6 +25,7 @@ class ReportDraft {
     required this.description,
     required this.location,
     this.photo,
+    this.anonymous = false,
   });
 
   final IncidentCategory category;
@@ -32,6 +33,9 @@ class ReportDraft {
   final String description;
   final String location;
   final PickedPhoto? photo;
+
+  /// Hide the reporter's name from other students.
+  final bool anonymous;
 }
 
 /// Uploads the photo (if any) and saves the report.
@@ -78,6 +82,7 @@ class SubmitReportController extends AsyncNotifier<Incident?> {
           location: draft.location,
           photoUrl: uploaded?.publicUrl,
           photoPath: uploaded?.path,
+          anonymous: draft.anonymous,
         );
       } catch (_) {
         if (uploaded != null) {

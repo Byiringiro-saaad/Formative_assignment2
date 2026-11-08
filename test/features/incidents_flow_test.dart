@@ -180,6 +180,27 @@ void main() {
       expect(find.textContaining('Submitted on'), findsOneWidget);
     });
 
+    testWidgets('other students never see who filed an anonymous report', (
+      tester,
+    ) async {
+      final backend = await signedInStudent();
+      await backend.addIncident(
+        'i5',
+        title: 'Harassment near the gate',
+        reporter: 'brian',
+        category: IncidentCategory.safety,
+        anonymous: true,
+      );
+      await tester.pumpApp(backend);
+      await tester.openTab('Reports');
+
+      await tester.tap(find.text('Harassment near the gate'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Reported anonymously'), findsOneWidget);
+      expect(find.textContaining('Brian'), findsNothing);
+    });
+
     testWidgets('the reporter can withdraw a submitted report', (tester) async {
       final backend = await signedInStudent();
       await tester.pumpApp(backend);
@@ -264,6 +285,46 @@ void main() {
 
       expect(find.text('Incident Details'), findsOneWidget);
       expect(find.text('Broken chair'), findsOneWidget);
+    });
+
+    testWidgets('a student can hide their name from other students', (
+      tester,
+    ) async {
+      final backend = await signedInStudent();
+      await openForm(tester, backend);
+
+      await tester.tap(find.text('Safety'));
+      await tester.enterText(find.byType(TextFormField).at(0), 'Unsafe path');
+      await tester.enterText(
+        find.byType(TextFormField).at(1),
+        'Someone follows students on the dark path at night.',
+      );
+      await tester.scrollForm(find.text('Where is the issue?'));
+      await tester.tap(find.byType(DropdownButtonFormField<String>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Main Gate').last);
+      await tester.pumpAndSettle();
+      await tester.scrollForm(find.text('Hide my name from other students'));
+      await tester.tap(find.text('Hide my name from other students'));
+      await tester.pumpAndSettle();
+      await tester.scrollForm(find.text('Submit Report'));
+      await tester.tap(find.text('Submit Report'));
+      await tester.pumpAndSettle();
+
+      final saved =
+          (await backend.db
+                  .collection('incidents')
+                  .where('title', isEqualTo: 'Unsafe path')
+                  .get())
+              .docs
+              .single;
+      expect(saved['anonymous'], isTrue);
+      expect(saved['reporterName'], 'Anonymous');
+      expect(saved['reporterId'], 'amina');
+      expect(
+        find.text('Reported by you (your name is hidden from other students)'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('a failed upload keeps the form and shows the error', (

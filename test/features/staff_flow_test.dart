@@ -154,4 +154,21 @@ void main() {
     expect(find.text('Water shortage'), findsOneWidget);
     expect(find.text('Fixed light'), findsNothing);
   });
+
+  testWidgets('staff can see who filed an anonymous report', (tester) async {
+    final backend = await backendFor(grace, role: 'staff');
+    await backend.addIncident(
+      'i3',
+      title: 'Harassment near the gate',
+      reporter: 'amina',
+      anonymous: true,
+    );
+    await tester.pumpApp(backend);
+    await openIncident(tester, 'Harassment near the gate');
+
+    expect(
+      find.text('Reported by Amina Hassan (anonymous to students)'),
+      findsOneWidget,
+    );
+  });
 }

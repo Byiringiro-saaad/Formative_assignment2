@@ -47,9 +47,12 @@ class IncidentRepository {
     required String location,
     String? photoUrl,
     String? photoPath,
+    bool anonymous = false,
     DateTime? now,
   }) async {
     final at = now ?? DateTime.now();
+    // Anonymous reports never store the name, so no student can read it.
+    final name = anonymous ? Incident.anonymousName : reporter.name;
     final incident = Incident(
       id: id,
       title: title.trim(),
@@ -58,7 +61,7 @@ class IncidentRepository {
       location: location.trim(),
       status: IncidentStatus.submitted,
       reporterId: reporter.uid,
-      reporterName: reporter.name,
+      reporterName: name,
       createdAt: at,
       updatedAt: at,
       photoUrl: photoUrl,
@@ -68,9 +71,10 @@ class IncidentRepository {
           status: IncidentStatus.submitted,
           changedAt: at,
           changedBy: reporter.uid,
-          changedByName: reporter.name,
+          changedByName: name,
         ),
       ],
+      anonymous: anonymous,
     );
     // createdAt/updatedAt use server time: the security rules require it,
     // so nobody can backdate a report.

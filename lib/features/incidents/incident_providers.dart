@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers/firebase_providers.dart';
+import '../../data/models/app_user.dart';
 import '../../data/models/incident.dart';
 import '../../data/models/incident_category.dart';
 import '../../data/models/incident_status.dart';
@@ -32,6 +33,13 @@ final incidentProvider = StreamProvider.autoDispose.family<Incident?, String>((
   if (uid == null) return Stream.value(null);
   return ref.watch(incidentRepositoryProvider).watchById(id);
 });
+
+/// A reporter's profile, used by staff to see who filed an anonymous report.
+/// The security rules only let staff read other users' profiles.
+final reporterProfileProvider = StreamProvider.autoDispose
+    .family<AppUser?, String>(
+      (ref, uid) => ref.watch(userRepositoryProvider).watchUser(uid),
+    );
 
 /// Counts shown on the summary tiles.
 class IncidentSummary {

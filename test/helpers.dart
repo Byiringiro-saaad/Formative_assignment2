@@ -62,9 +62,10 @@ class TestBackend {
     IncidentStatus status = IncidentStatus.submitted,
     String location = 'Block A',
     int hoursAgo = 1,
+    bool anonymous = false,
   }) async {
     final at = DateTime.now().subtract(Duration(hours: hoursAgo));
-    final name = _names[reporter] ?? reporter;
+    final name = anonymous ? 'Anonymous' : _names[reporter] ?? reporter;
     final history = [
       _change(IncidentStatus.submitted, at, reporter, name),
       for (final s in IncidentStatus.values.where(
@@ -90,6 +91,7 @@ class TestBackend {
       'photoUrl': null,
       'photoPath': null,
       'history': history,
+      'anonymous': anonymous,
     });
   }
 

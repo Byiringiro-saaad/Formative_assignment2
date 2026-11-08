@@ -20,7 +20,11 @@ class Incident {
     this.photoUrl,
     this.photoPath,
     this.history = const [],
+    this.anonymous = false,
   });
+
+  /// Shown instead of the reporter's name on anonymous reports.
+  static const anonymousName = 'Anonymous';
 
   final String id;
   final String title;
@@ -41,6 +45,10 @@ class Incident {
 
   /// Every status the incident has been in, oldest first.
   final List<StatusChange> history;
+
+  /// When true the reporter's name is hidden from other students. Staff can
+  /// still look it up, because they may read every profile.
+  final bool anonymous;
 
   bool get hasPhoto => photoUrl != null && photoUrl!.isNotEmpty;
 
@@ -88,6 +96,7 @@ class Incident {
             if (entry is Map)
               StatusChange.fromMap(Map<String, dynamic>.from(entry)),
       ],
+      anonymous: map['anonymous'] == true,
     );
   }
 
@@ -109,5 +118,6 @@ class Incident {
     'photoUrl': photoUrl,
     'photoPath': photoPath,
     'history': history.map((h) => h.toMap()).toList(),
+    'anonymous': anonymous,
   };
 }

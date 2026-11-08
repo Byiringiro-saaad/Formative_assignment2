@@ -56,6 +56,24 @@ void main() {
       expect(saved.history.single.status, IncidentStatus.submitted);
     });
 
+    test('anonymous reports never store the reporter\'s name', () async {
+      await repo.create(
+        id: 'anon',
+        reporter: amina,
+        title: 'Harassment near the gate',
+        description: 'Someone has been shouting at students at night.',
+        category: IncidentCategory.safety,
+        location: 'Main Gate',
+        anonymous: true,
+      );
+
+      final raw = (await db.doc('incidents/anon').get()).data()!;
+      expect(raw['anonymous'], isTrue);
+      expect(raw['reporterName'], 'Anonymous');
+      expect(raw['reporterId'], 'amina');
+      expect(raw.toString(), isNot(contains(amina.name)));
+    });
+
     test('watchAll lists newest first', () async {
       await createSample('old', DateTime(2026, 11, 1));
       await createSample('new', DateTime(2026, 11, 5));
