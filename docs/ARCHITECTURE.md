@@ -76,7 +76,10 @@ Riverpod was chosen over Provider, BLoC and Cubit for four reasons:
 stateDiagram-v2
   [*] --> Splash
   Splash --> Login: signed out
-  Splash --> Home: signed in and profile loaded
+  Splash --> VerifyEmail: email not verified or not ALU
+  VerifyEmail --> Splash: link opened
+  VerifyEmail --> Login: sign out
+  Splash --> Home: verified and profile loaded
   Login --> SignUp
   Login --> ForgotPassword
   Login --> Splash: sign in succeeds
@@ -108,7 +111,8 @@ erDiagram
     string location
     string status "submitted, inProgress, resolved"
     string reporterId FK
-    string reporterName "copied so lists need no extra reads"
+    string reporterName "copied so lists need no extra reads; Anonymous if hidden"
+    boolean anonymous "hide the reporter's name from other students"
     timestamp createdAt
     timestamp updatedAt
     string photoUrl "public Supabase URL or null"
@@ -120,6 +124,8 @@ erDiagram
 Each entry in `history` is `{status, changedAt, changedBy, changedByName, note}`. Embedding the history in the incident document means the details screen needs one read, and a status change is a single atomic update (`status`, `updatedAt` and `arrayUnion` on `history`).
 
 `reporterName` is denormalised on purpose. Students can't read other users' profiles, so storing the name on the report avoids an extra read and a looser rule.
+
+**Anonymous reports** store `"Anonymous"` in `reporterName` and in the first history entry instead of the real name. Firestore can't hide one field from some readers, so the name is simply never written to the report. Staff look it up from `users/{reporterId}`, which only they may read.
 
 **Indexes:** `incidents (reporterId ASC, createdAt DESC)` for "my reports". Listing all reports by `createdAt` uses Firestore's automatic single-field index.
 
@@ -153,8 +159,10 @@ sequenceDiagram
 
 | Action | Student | Staff | Enforced by |
 |---|---|---|---|
-| Sign up | yes (always as student) | via admin script | Firestore rule on `users` create |
-| Submit a report | yes | yes | Firestore rule: `reporterId == auth.uid`, real profile name, status `submitted`, server timestamps, photo from own folder |
+| Use the app at all | verified ALU email only | verified ALU email only | Every rule checks `email_verified` and an `@alustudent.com` or `@alueducation.com` address; the storage policy checks the same |
+| Sign up | yes (always as student, ALU email) | via admin script | Firestore rule on `users` create |
+| Submit a report | yes, optionally anonymous | yes | Firestore rule: `reporterId == auth.uid`, real profile name or `"Anonymous"`, status `submitted`, server timestamps, photo from own folder |
+| See who filed an anonymous report | own only | yes | Students can't read other profiles |
 | Browse and search all reports | yes | yes | Firestore rule: signed in |
 | Change a report's status | no | yes, forward only | Firestore rule: `isStaff()`, status rank increases, earlier history unchanged, exactly one new entry signed with the staff member's own name and the current time |
 | Edit a report's text | no | no | Firestore rule: only `status`, `updatedAt`, `history` may change |
@@ -176,7 +184,7 @@ The rules also protect data quality, so one bad write can't break the app for ev
 | Unit | `flutter_test` | Models (serialisation, defaults, malformed documents), validators, redirect logic, filters, time formatting |
 | Repository | `fake_cloud_firestore`, `firebase_auth_mocks` | Queries, ordering, status updates, error mapping, sign-up and profile-repair racing each other |
 | Widget and flow | `flutter_test` with provider overrides | Login, sign up, sign out, report form validation and submission, failed upload, search and filters, details, withdrawing, staff status updates |
-| Security rules | `@firebase/rules-unit-testing` on the Firestore emulator | Every allow and deny path in `firestore.rules`, including backdating, fake reporter names, reused photos and rewritten history (27 tests) |
+| Security rules | `@firebase/rules-unit-testing` on the Firestore emulator | Every allow and deny path in `firestore.rules`, including unverified and non-ALU accounts, anonymous reports, backdating, fake reporter names, reused photos and rewritten history (36 tests) |
 | Live smoke test | Firebase JS SDK against the real project | Deployed rules accept the app's writes and reject role escalation, backdating and impersonation |
 | Code review | Independent review pass | Found the unvalidated timestamps and the sign-up race, both fixed with tests |
 | Storage policies | REST calls with a real Firebase token | Upload to own folder works; other folders and signed-out uploads are rejected |

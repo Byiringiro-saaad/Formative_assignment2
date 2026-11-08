@@ -58,7 +58,7 @@ A section-by-section outline for the technical report, matching what the brief a
 
 ## 9. Testing strategy (1 page)
 - Testing pyramid table: section 7 of `docs/ARCHITECTURE.md`.
-- Numbers: 64 Dart unit and widget tests, 27 security-rule tests (check the final `flutter test` and `npm test` output before submitting).
+- Numbers: 78 Dart unit and widget tests, 36 security-rule tests (check the final `flutter test` and `npm test` output before submitting).
 - Examples worth quoting: "a student cannot promote themselves to staff", "a failed upload keeps the form and shows the error".
 - Manual testing on a device.
 

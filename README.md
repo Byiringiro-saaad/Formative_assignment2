@@ -10,15 +10,20 @@ A Flutter app for reporting campus issues: broken facilities, water shortages, p
 |---|---|---|---|
 | ![Details](docs/screenshots/05_incident_details.png) | ![Profile](docs/screenshots/06_profile.png) | ![Staff home](docs/screenshots/07_home_staff.png) | ![Staff update](docs/screenshots/08_staff_update_status.png) |
 
+| Updates | Verify email | Anonymous option | Staff view of an anonymous report |
+|---|---|---|---|
+| ![Updates](docs/screenshots/09_updates_feed.png) | ![Verify email](docs/screenshots/10_verify_email.png) | ![Anonymous option](docs/screenshots/11_report_anonymous.png) | ![Anonymous, staff view](docs/screenshots/12_anonymous_staff_view.png) |
+
 ## Features
 
 **Students**
-- Sign up, sign in, reset a forgotten password
+- Sign up with an ALU email (`@alustudent.com` or `@alueducation.com`), verify it from the link sent by email, sign in, reset a forgotten password
 - Report an issue: category, title, description, campus location and an optional photo from the camera or gallery
 - Browse every report on campus, search it, and filter by status, category or "my reports"
 - Follow each report on a status timeline (Submitted → In Progress → Resolved), with notes from staff
 - See updates to their reports in the Updates feed (bell icon on Home)
 - Withdraw a report while it's still Submitted
+- Hide their name from other students on a report (staff can still see who filed it)
 
 **Staff**
 - Campus-wide summary and a shortcut to every report still waiting for review
@@ -90,7 +95,9 @@ node make_staff.mjs someone@example.com   # grant the staff role
 node make_staff.mjs someone@example.com --revoke
 ```
 
-Everyone who signs up in the app is a student. The Firestore rules stop users from changing their own role, so staff can only be created with `make_staff.mjs`.
+Everyone who signs up in the app is a student. The Firestore rules stop users from changing their own role, so staff can only be created with `make_staff.mjs`. A staff member still needs a verified ALU email address: the rules and storage policies admit only verified `@alustudent.com` and `@alueducation.com` accounts.
+
+After changing `supabase/storage.sql`, run it in the Supabase SQL editor.
 
 Deploy the Firestore rules and indexes:
 

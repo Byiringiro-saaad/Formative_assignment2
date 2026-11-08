@@ -20,7 +20,7 @@ void main() {
   );
   final grace = MockUser(
     uid: 'grace',
-    email: 'grace@alustudent.com',
+    email: 'grace@alueducation.com',
     displayName: 'Grace Uwase',
   );
 
@@ -74,6 +74,7 @@ void main() {
       category: IncidentCategory.safety,
       location: 'Main Gate',
       hoursAgo: 50,
+      anonymous: true,
     );
     return b;
   }
@@ -167,5 +168,33 @@ void main() {
     await phone(tester, await demo(amina));
     await tester.tap(find.byIcon(Icons.notifications_none_rounded));
     await shot(tester, '09_updates_feed');
+  });
+
+  testWidgets('10 verify email', (tester) async {
+    final unverified = MockUser(
+      uid: 'amina',
+      email: 'amina@alustudent.com',
+      displayName: 'Amina Hassan',
+      isEmailVerified: false,
+    );
+    await phone(tester, await demo(unverified));
+    await shot(tester, '10_verify_email');
+  });
+
+  testWidgets('11 anonymous report option', (tester) async {
+    await phone(tester, await demo(amina));
+    await tester.tap(find.bySemanticsLabel('Report an incident'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Submit Report'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Hide my name from other students'));
+    await shot(tester, '11_report_anonymous');
+  });
+
+  testWidgets('12 staff view of an anonymous report', (tester) async {
+    await phone(tester, await demo(grace));
+    await tester.openTab('Reports');
+    await tester.tap(find.text('Main gate light not working'));
+    await shot(tester, '12_anonymous_staff_view');
   });
 }
